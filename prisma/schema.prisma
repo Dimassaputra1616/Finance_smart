@@ -1,9 +1,7 @@
 // CATATAN PENTING
 // Field yang secara konsep enum (Account.type, Category.kind, Transaction.kind)
 // disimpan sebagai `String` dan divalidasi dua lapis: union type di
-// `src/lib/types.ts` + zod di `src/lib/validations/`. Postgres sebenarnya
-// mendukung enum native, tapi String dipertahankan supaya validasi dan kode
-// yang ada tidak berubah.
+// `src/lib/types.ts` + zod di `src/lib/validations/`.
 // Nilai enum yang sah didefinisikan sebagai konstanta di `src/lib/types.ts`.
 
 generator client {
@@ -13,6 +11,25 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// Pengguna aplikasi enterprise (RBAC: ADMIN | STAFF).
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  username     String        @unique
+  passwordHash String
+  /// ADMIN | STAFF
+  role         String        @default("STAFF")
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  createdTransactions  Transaction[] @relation("CreatedByUser")
+  approvedTransactions Transaction[] @relation("ApprovedByUser")
+
+  @@index([role])
+  @@index([isActive])
 }
 
 /// Tempat uang ditahan.
@@ -70,6 +87,9 @@ model Category {
   /// INCOME | EXPENSE
   kind         String
   color        String        @default("#64748b")
+  /// Pagu bulanan (rupiah penuh, selalu positif). Null = tanpa pagu. Hanya
+  /// bermakna untuk kategori EXPENSE; action menyimpan null untuk INCOME.
+  monthlyBudget Int?
   isArchived   Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -93,6 +113,23 @@ model Transaction {
   notes       String?
   accountId   String
   categoryId  String
+
+  /// PENDING | APPROVED | REJECTED
+  status      String   @default("PENDING")
+
+  /// Bukti transaksi (disimpan di folder privat server)
+  proofPath         String?
+  proofOriginalName String?
+  proofSize         Int?
+
+  createdById String?
+  createdBy   User?    @relation("CreatedByUser", fields: [createdById], references: [id], onDelete: SetNull)
+
+  approvedById    String?
+  approvedBy      User?     @relation("ApprovedByUser", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt      DateTime?
+  rejectionReason String?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -107,6 +144,8 @@ model Transaction {
   @@index([occurredAt])
   @@index([accountId])
   @@index([categoryId])
+  @@index([status])
+  @@index([createdById])
 }
 
 /// Uang yang dipinjamkan ke orang lain.

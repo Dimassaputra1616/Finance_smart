@@ -1,8 +1,10 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { adminGuard } from "@/lib/session";
 import { categoryFormSchema, categoryIdSchema } from "@/lib/validations";
 import { actionError, describePrismaError, type ActionResult } from "@/lib/types";
+import { normalizeBudget } from "@/lib/budget-rules";
 import { revalidateFinancePages } from "./revalidate";
 
 function readCategoryForm(formData: FormData) {
@@ -10,6 +12,9 @@ function readCategoryForm(formData: FormData) {
     name: formData.get("name"),
     kind: formData.get("kind"),
     color: formData.get("color"),
+    // Field kosong dikirim browser sebagai string kosong; `?? ""` menjaga
+    // kasus field tidak ada sama sekali supaya tidak jadi galat "Required".
+    monthlyBudget: formData.get("monthlyBudget") ?? "",
   };
 }
 
@@ -17,6 +22,9 @@ export async function createCategory(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const parsed = categoryFormSchema.safeParse(readCategoryForm(formData));
 
   if (!parsed.success) {
@@ -32,6 +40,7 @@ export async function createCategory(
         name: parsed.data.name,
         kind: parsed.data.kind,
         color: parsed.data.color,
+        monthlyBudget: normalizeBudget(parsed.data.kind, parsed.data.monthlyBudget),
       },
     });
 
@@ -46,6 +55,9 @@ export async function updateCategory(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = categoryIdSchema.safeParse({ categoryId: formData.get("id") });
 
   if (!idParsed.success) {
@@ -84,6 +96,7 @@ export async function updateCategory(
         name: parsed.data.name,
         kind: parsed.data.kind,
         color: parsed.data.color,
+        monthlyBudget: normalizeBudget(parsed.data.kind, parsed.data.monthlyBudget),
       },
     });
 
@@ -98,6 +111,9 @@ export async function toggleArchiveCategory(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = categoryIdSchema.safeParse({ categoryId: formData.get("id") });
 
   if (!idParsed.success) {
@@ -135,6 +151,9 @@ export async function deleteCategory(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = categoryIdSchema.safeParse({ categoryId: formData.get("id") });
 
   if (!idParsed.success) {

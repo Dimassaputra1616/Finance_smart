@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createTransaction } from "@/server/actions/transactions";
-import { getActiveAccounts, getActiveCategories } from "@/server/queries/finance";
+import { getAccountBalances, getActiveCategories } from "@/server/queries/finance";
+import { getCurrentUser } from "@/lib/session";
+import { canManageMasterData } from "@/lib/transaction-rules";
 import type { TransactionKind } from "@/lib/types";
 import { IconArrowLeft } from "@/components/Icons";
 import {
@@ -10,20 +12,25 @@ import {
 } from "@/components/transactions/TransactionForm";
 import { Card, EmptyState, buttonStyles } from "@/components/ui";
 
-export const metadata = { title: "Catat Transaksi · Keuangan" };
+export const metadata = { title: "Catat Transaksi" };
 
 // Daftar akun dan kategori diambil dari database saat request.
 export const dynamic = "force-dynamic";
 
 export default async function NewTransactionPage() {
-  const [accounts, categories] = await Promise.all([
-    getActiveAccounts(),
+  const [accounts, categories, currentUser] = await Promise.all([
+    getAccountBalances(),
     getActiveCategories(),
+    getCurrentUser(),
   ]);
+
+  const canManage = canManageMasterData(currentUser?.role);
 
   const accountOptions: AccountOption[] = accounts.map((account) => ({
     id: account.id,
     name: account.name,
+    balance: account.balance,
+    type: account.type,
   }));
 
   const categoryOptions: CategoryOption[] = categories.map((category) => ({
@@ -57,26 +64,34 @@ export default async function NewTransactionPage() {
           <EmptyState
             title="Data pendukung belum lengkap"
             description={
-              accounts.length === 0
-                ? "Minimal satu akun diperlukan sebelum mencatat transaksi."
-                : "Minimal satu kategori diperlukan sebelum mencatat transaksi."
+              canManage
+                ? accounts.length === 0
+                  ? "Minimal satu akun diperlukan sebelum mencatat transaksi."
+                  : "Minimal satu kategori diperlukan sebelum mencatat transaksi."
+                : "Akun rekening atau pos anggaran belum disiapkan oleh Administrator. Hubungi Administrator untuk menambahkannya sebelum mencatat transaksi."
             }
             action={
-              <div className="flex gap-2">
-                {accounts.length === 0 ? (
-                  <Link href="/akun" className={buttonStyles("secondary", "sm")}>
-                    Tambah akun
-                  </Link>
-                ) : null}
-                {categories.length === 0 ? (
-                  <Link
-                    href="/kategori"
-                    className={buttonStyles("secondary", "sm")}
-                  >
-                    Tambah kategori
-                  </Link>
-                ) : null}
-              </div>
+              canManage ? (
+                <div className="flex gap-2">
+                  {accounts.length === 0 ? (
+                    <Link href="/akun" className={buttonStyles("secondary", "sm")}>
+                      Tambah akun
+                    </Link>
+                  ) : null}
+                  {categories.length === 0 ? (
+                    <Link
+                      href="/kategori"
+                      className={buttonStyles("secondary", "sm")}
+                    >
+                      Tambah kategori
+                    </Link>
+                  ) : null}
+                </div>
+              ) : (
+                <Link href="/transaksi" className={buttonStyles("secondary", "sm")}>
+                  Lihat jurnal kas
+                </Link>
+              )
             }
           />
         ) : (

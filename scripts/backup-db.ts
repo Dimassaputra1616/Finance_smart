@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 import {
   existsSync,
@@ -10,15 +11,12 @@ import {
 import { isAbsolute, join, resolve } from "node:path";
 
 /**
- * Backup database SQLite.
+ * Backup database Keuangan (PostgreSQL & SQLite).
  *
  * Dipakai lewat `npm run db:backup`.
  *
- * Kenapa bukan `cp` biasa? SQLite menulis ke berkas lewat halaman, jadi menyalin
- * berkasnya saat dev server sedang aktif bisa menghasilkan salinan yang tidak
- * konsisten (-half-written). Perintah `VACUUM INTO` membuat salinan dari isi
- * database yang sudah dijamin konsisten oleh SQLite, dan berjalan aman meski
- * ada penulisan yang sedang berlangsung.
+ * - PostgreSQL: Menggunakan utilitas `pg_dump` bawaan sistem untuk membuat dump sql/custom format.
+ * - SQLite: Menggunakan `VACUUM INTO` untuk salinan konsisten.
  *
  * Hasil disimpan di `prisma/backups/` dengan nama bercap waktu, dan hanya 10
  * backup terbaru yang dipertahankan supaya folder tidak tumbuh tanpa batas.
@@ -47,29 +45,10 @@ function readDatabaseUrl(): string {
   throw new Error("DATABASE_URL tidak ditemukan di berkas .env.");
 }
 
-/**
- * Ubah `DATABASE_URL` menjadi path absolut berkas database.
- *
- * Path relatif pada `DATABASE_URL` Prisma tidak diselesaikan terhadap working
- * directory, melainkan terhadap lokasi `schema.prisma` — jadi `file:./dev.db`
- * berarti `prisma/dev.db`, bukan `./dev.db`. Aturan yang sama ditirukan di sini
- * supaya skrip tidak salah resolve.
- */
-function resolveSqlitePath(url: string): string {
-  if (!url.startsWith("file:")) {
-    throw new Error(
-      `Backup ini hanya mendukung SQLite (DATABASE_URL harus diawali "file:"), dapat: ${url}`,
-    );
-  }
-
-  const raw = url.slice("file:".length);
-  return isAbsolute(raw) ? raw : resolve(PRISMA_DIR, raw);
-}
-
 /** Buang backup lama, sisakan `KEEP_LATEST` yang terbaru. */
 function pruneOldBackups(): number {
   const files = readdirSync(BACKUP_DIR)
-    .filter((name) => name.endsWith(".db"))
+    .filter((name) => name.endsWith(".sql") || name.endsWith(".db"))
     // Nama memuat timestamp, jadi urutan leksikografis = urutan waktu.
     .sort();
 
@@ -80,28 +59,31 @@ function pruneOldBackups(): number {
       unlinkSync(join(BACKUP_DIR, name));
       console.log(`  membuang backup lama: ${name}`);
     } catch {
-      // Kalau gagal hapus, backup lama yang tersisa hanya membebani disk —
-      // bukan alasan membatalkan backup yang baru saja berhasil.
+      // Abaikan jika gagal hapus
     }
   }
 
   return stale.length;
 }
 
-async function main() {
-  const source = resolveSqlitePath(readDatabaseUrl());
+async function backupPostgres(url: string, destination: string) {
+  console.log(`Menjalankan pg_dump untuk database PostgreSQL...`);
+  try {
+    execSync(`pg_dump --clean --if-exists --no-owner -d "${url}" -f "${destination}"`, {
+      stdio: "inherit",
+    });
+  } catch (err) {
+    throw new Error(`Gagal membuat backup dengan pg_dump: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+async function backupSqlite(url: string, destination: string) {
+  const raw = url.slice("file:".length);
+  const source = isAbsolute(raw) ? raw : resolve(PRISMA_DIR, raw);
 
   if (!existsSync(source)) {
-    throw new Error(
-      `Berkas database tidak ditemukan: ${source}\nJalankan \`npm run db:migrate\` dulu.`,
-    );
+    throw new Error(`Berkas database tidak ditemukan: ${source}`);
   }
-
-  mkdirSync(BACKUP_DIR, { recursive: true });
-
-  // Timestamp dengan milidetik supaya dua backup berdekatan tidak menabrak nama.
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const destination = join(BACKUP_DIR, `dev-${stamp}.db`);
 
   const prisma = new PrismaClient();
   try {
@@ -111,12 +93,30 @@ async function main() {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+async function main() {
+  const dbUrl = readDatabaseUrl();
+  const isPostgres = dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://");
+
+  mkdirSync(BACKUP_DIR, { recursive: true });
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const ext = isPostgres ? "sql" : "db";
+  const destination = join(BACKUP_DIR, `keuangan-${stamp}.${ext}`);
+
+  if (isPostgres) {
+    await backupPostgres(dbUrl, destination);
+  } else if (dbUrl.startsWith("file:")) {
+    await backupSqlite(dbUrl, destination);
+  } else {
+    throw new Error(`Tipe database pada DATABASE_URL tidak didukung: ${dbUrl}`);
+  }
 
   const { size } = statSync(destination);
 
   console.log(`Backup selesai`);
-  console.log(`  dari : ${source}`);
-  console.log(`  ke   : ${destination}`);
+  console.log(`  ke    : ${destination}`);
   console.log(`  ukuran: ${(size / 1024).toFixed(1)} KB`);
 
   const removed = pruneOldBackups();

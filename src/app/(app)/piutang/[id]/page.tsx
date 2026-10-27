@@ -23,14 +23,18 @@ import {
   ToggleCancelReceivableButton,
 } from "@/components/receivables/ReceivableActions";
 import { Card, CardHeader, EmptyState, cx } from "@/components/ui";
+import { AccessDenied } from "@/components/layout/AccessDenied";
+import { isAdminSession } from "@/lib/session";
 
-export const metadata = { title: "Detail Piutang · Keuangan" };
+export const metadata = { title: "Detail Piutang" };
 
 export default async function ReceivableDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!(await isAdminSession())) return <AccessDenied />;
+
   const { id } = await params;
   const [receivable, accounts, categories] = await Promise.all([
     getReceivableById(id),

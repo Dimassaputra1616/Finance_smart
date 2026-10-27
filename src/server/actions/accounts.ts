@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { adminGuard } from "@/lib/session";
 import { accountFormSchema, accountIdSchema } from "@/lib/validations";
 import { actionError, describePrismaError, type ActionResult } from "@/lib/types";
 import { revalidateFinancePages } from "./revalidate";
@@ -18,6 +19,9 @@ export async function createAccount(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const parsed = accountFormSchema.safeParse(readAccountForm(formData));
 
   if (!parsed.success) {
@@ -48,6 +52,9 @@ export async function updateAccount(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = accountIdSchema.safeParse({ accountId: formData.get("id") });
 
   if (!idParsed.success) {
@@ -86,6 +93,9 @@ export async function toggleArchiveAccount(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = accountIdSchema.safeParse({ accountId: formData.get("id") });
 
   if (!idParsed.success) {
@@ -146,6 +156,9 @@ export async function deleteAccount(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = accountIdSchema.safeParse({ accountId: formData.get("id") });
 
   if (!idParsed.success) {

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { toUtcMidnight } from "@/lib/date";
+import { adminGuard } from "@/lib/session";
 import { transferFormSchema, transferIdSchema } from "@/lib/validations";
 import { checkTransferAccounts } from "@/lib/transfer-rules";
 import { actionError, describePrismaError, type ActionResult } from "@/lib/types";
@@ -81,6 +82,9 @@ export async function createTransfer(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const parsed = transferFormSchema.safeParse(readTransferForm(formData));
 
   if (!parsed.success) {
@@ -139,6 +143,9 @@ export async function deleteTransfer(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const parsed = transferIdSchema.safeParse({
     transferId: formData.get("transferId"),
   });

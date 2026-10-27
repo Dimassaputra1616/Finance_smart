@@ -1,6 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { APP_NAME } from "@/lib/brand";
+import { VAULT_INIT_SCRIPT } from "@/lib/vault-gate";
 import "./globals.css";
 
 const inter = Inter({
@@ -9,10 +12,33 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f6f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#060e0a" },
+  ],
+};
+
 export const metadata: Metadata = {
-  title: "Keuangan Pribadi",
+  // `template` membuat tiap halaman cukup menulis judulnya sendiri
+  // (mis. "Piutang") dan tab menampilkan "Piutang · Perbendaharaan & Kas".
+  title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description:
-    "Pencatat keuangan pribadi: transaksi, kategori, akun, dan ringkasan bulanan.",
+    "Sistem pengendalian keuangan internal: transaksi, pos anggaran, rekening operasional, dan persetujuan pengeluaran.",
+  applicationName: APP_NAME,
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Keuangan",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 /**
@@ -33,8 +59,14 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning className={inter.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Mematikan gerbang login yang sudah pernah diputar di sesi tab ini,
+            sebelum halaman digambar, supaya tidak berkedip. */}
+        <script dangerouslySetInnerHTML={{ __html: VAULT_INIT_SCRIPT }} />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,32 +1,26 @@
-// Gembok login untuk akses publik.
-//
-// Aplikasi ini tidak punya sistem user; satu kredensial bersama (dari
-// environment `BASIC_AUTH_USER` / `BASIC_AUTH_PASS`) menjaga seluruh aplikasi.
-// Mekanismenya: form login di `/login` membuat cookie sesi bertanda tangan,
-// middleware ini memverifikasinya di setiap request.
-//
-// Aktif hanya bila kedua env var diset — tanpa keduanya, aplikasi tetap
-// terbuka seperti perilaku lokal semula.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
   SESSION_COOKIE_NAME,
+  getAuthSecret,
   verifySessionToken,
 } from "@/lib/auth";
 
+/**
+ * Gembok login untuk seluruh aplikasi.
+ *
+ * Mengizinkan akses jika token sesi valid di cookie `keuangan_session`.
+ * Pengguna yang belum login diarahkan ke `/login`.
+ */
+
 async function isAuthenticated(request: NextRequest): Promise<boolean> {
-  const secret = process.env.BASIC_AUTH_PASS;
-  if (!secret) return false;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return false;
-  const username = await verifySessionToken(token, secret);
+  const username = await verifySessionToken(token, getAuthSecret());
   return username !== null;
 }
 
 export async function middleware(request: NextRequest) {
-  const user = process.env.BASIC_AUTH_USER;
-  const pass = process.env.BASIC_AUTH_PASS;
-
   const { pathname } = request.nextUrl;
 
   // API bot punya auth sendiri (Bearer BOT_API_KEY), tidak ikut sesi browser.
@@ -34,8 +28,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Kredensial belum dikonfigurasi: biarkan lewat (mode lokal).
-  if (!user || !pass) {
+  // Aset PWA publik (manifest, service worker, ikon, halaman offline) boleh dibuka tanpa sesi.
+  if (
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
+    pathname === "/offline.html" ||
+    pathname.startsWith("/icon") ||
+    pathname.startsWith("/apple-icon")
+  ) {
     return NextResponse.next();
   }
 
@@ -49,14 +49,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (loggedIn) {
-    return NextResponse.next();
+  // Jika belum login, arahkan ke /login
+  if (!loggedIn) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.redirect(new URL("/login", request.url));
+  return NextResponse.next();
 }
 
 export const config = {
-  // Abaikan aset statis dan favicon supaya tidak ikut dicek sesi.
+  // Abaikan aset statis, favicon, dan API publik supaya tidak dicek sesi.
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

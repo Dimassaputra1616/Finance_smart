@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ActionResult } from "@/lib/types";
 import { getTodayInputValue } from "@/lib/date";
-import { IconArrowRight } from "@/components/Icons";
+import { formatRupiah } from "@/lib/money";
+import { checkTransferBalance } from "@/lib/account-balance-rules";
+import { IconAlert, IconArrowRight } from "@/components/Icons";
 import {
   Alert,
   alertDuration,
@@ -13,11 +15,17 @@ import {
   Input,
   Select,
   Textarea,
+  cx,
 } from "@/components/ui";
 
 const INITIAL_RESULT: ActionResult = { ok: false, message: "" };
 
-export type TransferAccountOption = { id: string; name: string };
+export type TransferAccountOption = {
+  id: string;
+  name: string;
+  balance?: number;
+  type?: string;
+};
 
 /**
  * Form transfer antar akun.
@@ -38,6 +46,21 @@ export function TransferForm({
   accounts: TransferAccountOption[];
 }) {
   const [result, formAction, pending] = useActionState(action, INITIAL_RESULT);
+  const [fromAccountId, setFromAccountId] = useState<string>("");
+  const [toAccountId, setToAccountId] = useState<string>("");
+  const [enteredAmount, setEnteredAmount] = useState<number | null>(null);
+
+  const fromAccount = accounts.find((a) => a.id === fromAccountId);
+  const toAccount = accounts.find((a) => a.id === toAccountId);
+
+  const transferCheck =
+    fromAccount && fromAccount.balance !== undefined
+      ? checkTransferBalance({
+          fromAccountType: fromAccount.type,
+          fromAccountBalance: fromAccount.balance,
+          amount: enteredAmount,
+        })
+      : null;
 
   const errors = result.ok ? undefined : result.errors;
 
@@ -54,29 +77,57 @@ export function TransferForm({
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-start">
-        <FormField
-          label="Dari akun"
-          htmlFor="fromAccountId"
-          required
-          errors={errors?.fromAccountId}
-        >
-          <Select
-            id="fromAccountId"
-            name="fromAccountId"
+        <div className="space-y-1.5">
+          <FormField
+            label="Dari akun"
+            htmlFor="fromAccountId"
             required
-            defaultValue=""
-            invalid={Boolean(errors?.fromAccountId)}
+            errors={errors?.fromAccountId}
           >
-            <option value="" disabled>
-              Pilih akun asal
-            </option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
+            <Select
+              id="fromAccountId"
+              name="fromAccountId"
+              required
+              value={fromAccountId}
+              onChange={(e) => setFromAccountId(e.target.value)}
+              invalid={Boolean(errors?.fromAccountId)}
+            >
+              <option value="" disabled>
+                Pilih akun asal
               </option>
-            ))}
-          </Select>
-        </FormField>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                  {account.balance !== undefined
+                    ? ` · ${formatRupiah(account.balance)}`
+                    : ""}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          {fromAccount && fromAccount.balance !== undefined ? (
+            <div className="flex flex-wrap items-center justify-between gap-1 text-xs px-0.5">
+              <span className="text-subtle-foreground">
+                Saldo asal:{" "}
+                <strong
+                  className={cx(
+                    "font-mono font-semibold tabular-nums",
+                    fromAccount.balance < 0 ? "text-expense" : "text-foreground",
+                  )}
+                >
+                  {formatRupiah(fromAccount.balance)}
+                </strong>
+              </span>
+              {transferCheck?.isInsufficient ? (
+                <span className="inline-flex items-center gap-1 rounded-md border border-warning-border/40 bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-warning animate-fade-in">
+                  <IconAlert className="h-3 w-3 shrink-0" />
+                  <span>Saldo asal tidak mencukupi</span>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
         <span
           aria-hidden="true"
@@ -85,29 +136,51 @@ export function TransferForm({
           <IconArrowRight className="h-5 w-5" />
         </span>
 
-        <FormField
-          label="Ke akun"
-          htmlFor="toAccountId"
-          required
-          errors={errors?.toAccountId}
-        >
-          <Select
-            id="toAccountId"
-            name="toAccountId"
+        <div className="space-y-1.5">
+          <FormField
+            label="Ke akun"
+            htmlFor="toAccountId"
             required
-            defaultValue=""
-            invalid={Boolean(errors?.toAccountId)}
+            errors={errors?.toAccountId}
           >
-            <option value="" disabled>
-              Pilih akun tujuan
-            </option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
+            <Select
+              id="toAccountId"
+              name="toAccountId"
+              required
+              value={toAccountId}
+              onChange={(e) => setToAccountId(e.target.value)}
+              invalid={Boolean(errors?.toAccountId)}
+            >
+              <option value="" disabled>
+                Pilih akun tujuan
               </option>
-            ))}
-          </Select>
-        </FormField>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                  {account.balance !== undefined
+                    ? ` · ${formatRupiah(account.balance)}`
+                    : ""}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          {toAccount && toAccount.balance !== undefined ? (
+            <div className="flex items-center text-xs px-0.5">
+              <span className="text-subtle-foreground">
+                Saldo tujuan:{" "}
+                <strong
+                  className={cx(
+                    "font-mono font-semibold tabular-nums",
+                    toAccount.balance < 0 ? "text-expense" : "text-foreground",
+                  )}
+                >
+                  {formatRupiah(toAccount.balance)}
+                </strong>
+              </span>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -119,7 +192,7 @@ export function TransferForm({
         >
           {/* `CurrencyInput` sudah menaruh prefix "Rp" sendiri, jadi yang perlu
               ditambah hanya atribut penanda untuk pembaca layar. */}
-          <CurrencyInput name="amount" />
+          <CurrencyInput name="amount" onValueChange={setEnteredAmount} />
         </FormField>
 
         <FormField label="Tanggal" htmlFor="date" required errors={errors?.date}>

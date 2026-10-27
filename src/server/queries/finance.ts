@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { monthToRange, type MonthKey } from "@/lib/date";
 import { accountBalanceOf, safeSum } from "@/lib/money";
+import { calcBudgetProgress, type BudgetRow } from "@/lib/budget-rules";
 import type { TransactionKind } from "@/lib/types";
 
 /**
@@ -24,12 +25,39 @@ export type MonthSummary = {
 export async function getMonthSummary(monthKey: MonthKey): Promise<MonthSummary> {
   const { start, end } = monthToRange(monthKey);
 
-  const grouped = await db.transaction.groupBy({
-    by: ["kind"],
-    where: { occurredAt: { gte: start, lt: end } },
-    _sum: { amount: true },
-    _count: { _all: true },
-  });
+  let grouped: Array<{
+    kind: string;
+    _sum: { amount: number | null };
+    _count: { _all: number };
+  }> = [];
+
+  try {
+    // Hanya transaksi yang disetujui (APPROVED) yang masuk ke arus kas resmi.
+    // Transaksi PENDING (belum disetujui) dan REJECTED tidak boleh memotong kas.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    grouped = await (db.transaction.groupBy as any)({
+      by: ["kind"],
+      where: {
+        occurredAt: { gte: start, lt: end },
+        status: "APPROVED",
+      },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+  } catch {
+    try {
+      // Fallback untuk database sebelum migrasi kolom status
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      grouped = await (db.transaction.groupBy as any)({
+        by: ["kind"],
+        where: { occurredAt: { gte: start, lt: end } },
+        _sum: { amount: true },
+        _count: { _all: true },
+      });
+    } catch {
+      grouped = [];
+    }
+  }
 
   let income = 0;
   let expense = 0;
@@ -71,16 +99,49 @@ export async function getCategoryBreakdown(
 ): Promise<CategoryBreakdownRow[]> {
   const { start, end } = monthToRange(monthKey);
 
-  const grouped = await db.transaction.groupBy({
-    by: ["categoryId", "kind"],
-    where: {
-      occurredAt: { gte: start, lt: end },
-      ...(kind ? { kind } : {}),
-    },
-    _sum: { amount: true },
-    _count: { _all: true },
-    orderBy: { _sum: { amount: "desc" } },
-  });
+  // Hanya hitung transaksi yang sudah APPROVED agar rincian per kategori
+  // selalu sama persis dengan total pengeluaran/pemasukan di kartu ringkasan.
+  let grouped: Array<{
+    categoryId: string;
+    kind: string;
+    _sum: { amount: number | null };
+    _count: { _all: number };
+  }> = [];
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    grouped = await (db.transaction.groupBy as any)({
+      by: ["categoryId", "kind"],
+      where: {
+        occurredAt: { gte: start, lt: end },
+        status: "APPROVED",
+        ...(kind ? { kind } : {}),
+      },
+      _sum: { amount: true },
+      _count: { _all: true },
+      orderBy: { _sum: { amount: "desc" } },
+    });
+  } catch {
+    try {
+      // Fallback untuk database sebelum migrasi kolom status.
+      // Ditampung dulu ke `const` tanpa anotasi tipe: kalau langsung di-assign
+      // ke `grouped`, TypeScript memakai tipe `grouped` sebagai petunjuk
+      // inferensi generik `groupBy` dan melaporkan galat TS2345.
+      const rows = await db.transaction.groupBy({
+        by: ["categoryId", "kind"],
+        where: {
+          occurredAt: { gte: start, lt: end },
+          ...(kind ? { kind } : {}),
+        },
+        _sum: { amount: true },
+        _count: { _all: true },
+        orderBy: { _sum: { amount: "desc" } },
+      });
+      grouped = rows;
+    } catch {
+      grouped = [];
+    }
+  }
 
   if (grouped.length === 0) return [];
 
@@ -108,6 +169,48 @@ export async function getCategoryBreakdown(
       },
     ];
   });
+}
+
+/**
+ * Realisasi pengeluaran terhadap pagu bulanan, untuk kategori yang punya pagu.
+ *
+ * Realisasi diambil dari `getCategoryBreakdown`, bukan query sendiri, supaya
+ * angkanya selalu identik dengan kartu "Alokasi Pengeluaran" (sama-sama hanya
+ * transaksi APPROVED). Kategori berpagu tanpa transaksi bulan itu tetap tampil
+ * dengan realisasi 0. Kategori terarsip tidak dipantau lagi.
+ *
+ * Pagu yang dipakai selalu nilai SAAT INI: mengubah pagu ikut mengubah tampilan
+ * bulan-bulan lalu, karena riwayat pagu tidak disimpan.
+ */
+export async function getBudgetProgress(monthKey: MonthKey): Promise<BudgetRow[]> {
+  const [categories, spentRows] = await Promise.all([
+    db.category.findMany({
+      where: { kind: "EXPENSE", isArchived: false, monthlyBudget: { not: null } },
+      select: { id: true, name: true, color: true, monthlyBudget: true },
+    }),
+    getCategoryBreakdown(monthKey, "EXPENSE"),
+  ]);
+
+  const spentByCategory = new Map(spentRows.map((row) => [row.categoryId, row.total]));
+
+  return categories
+    .flatMap((category): BudgetRow[] => {
+      if (category.monthlyBudget === null) return [];
+      const spent = spentByCategory.get(category.id) ?? 0;
+
+      return [
+        {
+          categoryId: category.id,
+          name: category.name,
+          color: category.color,
+          budget: category.monthlyBudget,
+          spent,
+          ...calcBudgetProgress(spent, category.monthlyBudget),
+        },
+      ];
+    })
+    // Yang paling mendekati atau melewati pagu di atas.
+    .sort((a, b) => b.percent - a.percent || a.name.localeCompare(b.name, "id"));
 }
 
 export type AccountBalance = {
@@ -152,10 +255,27 @@ export async function getAccountBalances(
       where: includeArchived ? {} : { isArchived: false },
       orderBy: { createdAt: "asc" },
     }),
-    db.transaction.groupBy({
-      by: ["accountId", "kind"],
-      _sum: { amount: true },
-    }),
+    // Saldo kas operasional hanya terpotong oleh transaksi yang sudah APPROVED.
+    // Transaksi PENDING (diajukan staf) dan REJECTED belum memotong saldo riil.
+    (async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return await (db.transaction.groupBy as any)({
+          by: ["accountId", "kind"],
+          where: { status: "APPROVED" },
+          _sum: { amount: true },
+        });
+      } catch {
+        try {
+          return await db.transaction.groupBy({
+            by: ["accountId", "kind"],
+            _sum: { amount: true },
+          });
+        } catch {
+          return [];
+        }
+      }
+    })(),
     // Dikelompokkan lewat `groupBy` pada kolom foreign key supaya hasilnya
     // bisa langsung dijumlahkan per akun tanpa menarik semua baris transfer.
     db.transfer.groupBy({
@@ -215,8 +335,19 @@ const TRANSACTION_INCLUDE = Prisma.validator<Prisma.TransactionInclude>()({
   category: { select: { id: true, name: true, color: true, kind: true } },
 });
 
+export const TRANSACTION_EXPORT_INCLUDE = Prisma.validator<Prisma.TransactionInclude>()({
+  account: { select: { id: true, name: true, type: true } },
+  category: { select: { id: true, name: true, color: true, kind: true } },
+  createdBy: { select: { name: true } },
+  approvedBy: { select: { name: true } },
+});
+
 export type TransactionWithRelations = Prisma.TransactionGetPayload<{
   include: typeof TRANSACTION_INCLUDE;
+}>;
+
+export type TransactionForExport = Prisma.TransactionGetPayload<{
+  include: typeof TRANSACTION_EXPORT_INCLUDE;
 }>;
 
 /** Enam transaksi terakhir, tanpa kunci bulan. */
@@ -233,6 +364,7 @@ export async function getRecentTransactions(
 export type TransactionFilters = {
   monthKey: MonthKey;
   kind?: TransactionKind;
+  status?: string;
   categoryId?: string;
   accountId?: string;
   keyword?: string;
@@ -250,6 +382,38 @@ export type TransactionListResult = {
 
 export const DEFAULT_PAGE_SIZE = 20;
 
+/** Ringkasan pengeluaran/pemasukan yang masih menunggu persetujuan (PENDING). */
+export async function getPendingSummary(): Promise<{
+  count: number;
+  totalExpense: number;
+  totalIncome: number;
+}> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const grouped = await (db.transaction.groupBy as any)({
+      by: ["kind"],
+      where: { status: "PENDING" },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+
+    let count = 0;
+    let totalExpense = 0;
+    let totalIncome = 0;
+
+    for (const row of grouped) {
+      const total = row._sum.amount ?? 0;
+      count += row._count._all;
+      if (row.kind === "EXPENSE") totalExpense += total;
+      else totalIncome += total;
+    }
+
+    return { count, totalExpense, totalIncome };
+  } catch {
+    return { count: 0, totalExpense: 0, totalIncome: 0 };
+  }
+}
+
 /** Daftar transaksi dengan filter dan paginasi, untuk halaman `/transaksi`. */
 export async function getTransactions(
   filters: TransactionFilters,
@@ -259,9 +423,11 @@ export async function getTransactions(
   const page = Math.max(1, filters.page);
   const keyword = filters.keyword?.trim();
 
-  const where = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
     occurredAt: { gte: start, lt: end },
     ...(filters.kind ? { kind: filters.kind } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
     ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
     ...(filters.accountId ? { accountId: filters.accountId } : {}),
     // `contains` tanpa `mode` bersifat case-sensitive. Setelah migrasi ke
@@ -270,16 +436,36 @@ export async function getTransactions(
     ...(keyword ? { description: { contains: keyword, mode: "insensitive" } } : {}),
   };
 
-  const [items, total] = await Promise.all([
-    db.transaction.findMany({
-      where,
-      include: TRANSACTION_INCLUDE,
-      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    db.transaction.count({ where }),
-  ]);
+  const [items, total] = await (async () => {
+    try {
+      return await Promise.all([
+        db.transaction.findMany({
+          where,
+          include: TRANSACTION_INCLUDE,
+          orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        db.transaction.count({ where }),
+      ]);
+    } catch {
+      // Fallback tanpa status dan tanpa mode insensitive jika skema DB belum di-upgrade
+      delete where.status;
+      if (where.description && typeof where.description === "object") {
+        where.description = { contains: keyword };
+      }
+      return await Promise.all([
+        db.transaction.findMany({
+          where,
+          include: TRANSACTION_INCLUDE,
+          orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        db.transaction.count({ where }),
+      ]);
+    }
+  })();
 
   return {
     items,
@@ -288,6 +474,47 @@ export async function getTransactions(
     pageSize,
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+/** Ambil seluruh transaksi bulan/filter berjalan untuk ekspor CSV (tanpa paginasi). */
+export async function getTransactionsForExport(
+  filters: Omit<TransactionFilters, "page" | "pageSize">,
+): Promise<TransactionForExport[]> {
+  const { start, end } = monthToRange(filters.monthKey);
+  const keyword = filters.keyword?.trim();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
+    occurredAt: { gte: start, lt: end },
+    ...(filters.kind ? { kind: filters.kind } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+    ...(filters.accountId ? { accountId: filters.accountId } : {}),
+    ...(keyword ? { description: { contains: keyword, mode: "insensitive" } } : {}),
+  };
+
+  try {
+    return await db.transaction.findMany({
+      where,
+      include: TRANSACTION_EXPORT_INCLUDE,
+      orderBy: [{ occurredAt: "asc" }, { createdAt: "asc" }],
+    });
+  } catch {
+    delete where.status;
+    if (where.description && typeof where.description === "object") {
+      where.description = { contains: keyword };
+    }
+    const fallbackItems = await db.transaction.findMany({
+      where,
+      include: TRANSACTION_INCLUDE,
+      orderBy: [{ occurredAt: "asc" }, { createdAt: "asc" }],
+    });
+    return fallbackItems.map((item) => ({
+      ...item,
+      createdBy: null,
+      approvedBy: null,
+    }));
+  }
 }
 
 /** Ambil satu transaksi beserta relasinya, atau `null` bila tidak ada. */

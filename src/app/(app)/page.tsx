@@ -4,6 +4,8 @@ import {
   getCategoryBreakdown,
   getMonthSummary,
   getRecentTransactions,
+  getPendingSummary,
+  getBudgetProgress,
 } from "@/server/queries/finance";
 import {
   getReceivableFlow,
@@ -18,18 +20,25 @@ import {
   shiftMonth,
 } from "@/lib/date";
 import { formatRupiah, percentage } from "@/lib/money";
+import { getCurrentUser } from "@/lib/session";
+import { canManageMasterData } from "@/lib/transaction-rules";
 import { ACCOUNT_TYPE_LABELS, isAccountType } from "@/lib/types";
 import {
   IconArrowDown,
   IconArrowLeft,
   IconArrowRight,
   IconArrowUp,
+  IconClock,
+  IconDownload,
   IconPlus,
   IconReceivable,
   IconScale,
+  IconTransfer,
   IconWallet,
 } from "@/components/Icons";
 import { WealthCard } from "@/components/WealthCard";
+import { TreasurerWelcomeCard } from "@/components/dashboard/TreasurerWelcomeCard";
+import { BudgetCard } from "@/components/dashboard/BudgetCard";
 import {
   Card,
   CardHeader,
@@ -57,6 +66,9 @@ export default async function DashboardPage({
     flow,
     piutang,
     wealth,
+    pending,
+    currentUser,
+    budgets,
   ] = await Promise.all([
     getMonthSummary(monthKey),
     getCategoryBreakdown(monthKey, "EXPENSE"),
@@ -67,10 +79,15 @@ export default async function DashboardPage({
     getReceivableFlow(monthKey),
     getReceivableSummary(),
     getWealthSummary(),
+    getPendingSummary(),
+    getCurrentUser(),
+    getBudgetProgress(monthKey),
   ]);
 
   const maxFlow = Math.max(summary.income, summary.expense, 1);
   const realExpense = summary.expense - flow.lent;
+  // Transfer dan Piutang khusus Administrator; staf tidak diberi pintasannya.
+  const canManage = canManageMasterData(currentUser?.role);
 
   // Akun aktif didahulukan, akun terarsip ditaruh paling bawah.
   const sortedAccounts = [...accounts].sort((a, b) => {
@@ -86,71 +103,219 @@ export default async function DashboardPage({
         overdueAmount={piutang.overdueAmount}
       />
 
-      <header className="flex flex-wrap items-end justify-between gap-4 pt-2">
+      {/* Header Periode Aktif & Pemilih Bulan (Ditaruh tepat di atas aksi agar konteks waktu jelas di awal) */}
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-1">
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-subtle-foreground">
-            Ringkasan bulanan
+            Perbendaharaan & Kas Kantor
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="mt-0.5 text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
             {formatMonthLabel(monthKey)}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {monthKey === currentMonth
-              ? "Bulan berjalan"
-              : `Bukan bulan berjalan (sekarang ${formatMonthLabel(currentMonth)})`}
-          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <MonthLink
-            monthKey={shiftMonth(monthKey, -1)}
-            label="Bulan lalu"
-            icon={<IconArrowLeft className="h-4 w-4" />}
-          />
-          {monthKey !== currentMonth ? (
-            <Link href="/" className={buttonStyles("secondary", "sm")}>
-              Bulan ini
-            </Link>
-          ) : null}
-          <MonthLink
-            monthKey={shiftMonth(monthKey, 1)}
-            label="Bulan depan"
-            icon={<IconArrowRight className="h-4 w-4" />}
-          />
-          <Link href="/transaksi/baru" className={buttonStyles("primary", "sm")}>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center rounded-xl border border-border bg-surface p-0.5 shadow-2xs">
+            <MonthLink
+              monthKey={shiftMonth(monthKey, -1)}
+              label="Periode lalu"
+              icon={<IconArrowLeft className="h-3.5 w-3.5" />}
+            />
+            {monthKey !== currentMonth ? (
+              <Link href="/" className="px-2.5 py-1 text-xs font-semibold text-primary hover:underline">
+                Bulan Ini
+              </Link>
+            ) : null}
+            <MonthLink
+              monthKey={shiftMonth(monthKey, 1)}
+              label="Periode depan"
+              icon={<IconArrowRight className="h-3.5 w-3.5" />}
+            />
+          </div>
+
+          <a
+            href={`/api/export/transaksi?bulan=${monthKey}`}
+            download
+            className={cx(buttonStyles("secondary", "sm"), "hidden sm:inline-flex min-h-11 gap-1.5")}
+            title="Unduh laporan mutasi kas periode ini (Excel .xls berformat tabel)"
+          >
+            <IconDownload className="h-4 w-4" />
+            <span>Ekspor</span>
+          </a>
+
+          <Link
+            href="/transaksi/baru"
+            className={cx(buttonStyles("primary", "sm"), "hidden sm:inline-flex min-h-11 gap-1")}
+          >
             <IconPlus className="h-4 w-4" />
-            Transaksi
+            Catat Mutasi
           </Link>
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* PWA Mobile Quick-Action Dock (Native Mobile Fintech Hub) */}
+      <div
+        className={cx(
+          "grid gap-2 pt-0.5 lg:hidden",
+          canManage ? "grid-cols-4" : "grid-cols-2",
+        )}
+      >
+        <Link
+          href="/transaksi/baru"
+          className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface p-2.5 text-center shadow-xs active:scale-95 transition"
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-xs group-hover:scale-105 transition">
+            <IconPlus className="h-5 w-5" />
+          </span>
+          <span className="text-[11px] font-semibold text-foreground">Catat Kas</span>
+        </Link>
+
+        {canManage ? (
+          <Link
+            href="/transaksi/transfer"
+            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface p-2.5 text-center shadow-xs active:scale-95 transition"
+          >
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-surface-muted text-foreground border border-border shadow-xs group-hover:scale-105 transition">
+              <IconTransfer className="h-5 w-5" />
+            </span>
+            <span className="text-[11px] font-semibold text-foreground">Transfer</span>
+          </Link>
+        ) : null}
+
+        <Link
+          href="/transaksi?status=PENDING"
+          className="group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface p-2.5 text-center shadow-xs active:scale-95 transition"
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-warning-soft text-warning border border-warning/35 shadow-xs group-hover:scale-105 transition">
+            <IconClock className="h-5 w-5" />
+          </span>
+          <span className="text-[11px] font-semibold text-foreground">Persetujuan</span>
+          {pending.count > 0 && (
+            <span className="absolute top-1.5 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground shadow-xs">
+              {pending.count}
+            </span>
+          )}
+        </Link>
+
+        {canManage ? (
+          <Link
+            href="/piutang"
+            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface p-2.5 text-center shadow-xs active:scale-95 transition"
+          >
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-surface-muted text-foreground border border-border shadow-xs group-hover:scale-105 transition">
+              <IconReceivable className="h-5 w-5" />
+            </span>
+            <span className="text-[11px] font-semibold text-foreground">Piutang</span>
+          </Link>
+        ) : null}
+      </div>
+
+      {pending.count > 0 ? (
+        <Card className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-l-4 border-l-warning p-4 bg-warning-soft/30">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-warning-soft text-warning">
+              <IconClock className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {pending.count} Transaksi Menunggu Persetujuan
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                Total pengeluaran diajukan:{" "}
+                <strong className="text-foreground font-semibold">
+                  {formatRupiah(pending.totalExpense)}
+                </strong>
+                . Saldo kas belum terpotong sebelum disetujui.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/transaksi?status=PENDING"
+            className={cx(buttonStyles("primary", "sm"), "shrink-0 min-h-11")}
+          >
+            Tinjau Sekarang →
+          </Link>
+        </Card>
+      ) : null}
+
+      {/* Kartu Sambutan Bendahara Digital (Tampil ramah saat kas baru / belum ada mutasi) */}
+      <TreasurerWelcomeCard
+        userName={currentUser?.name || "Bapak/Ibu"}
+        hasTransactions={recent.length > 0}
+      />
+
+      {/* Mobile Cashflow Cockpit: 2-in-1 Tile (Kompak & Anti-Scroll Panjang di Ponsel) */}
+      <div className="rounded-3xl border border-border bg-surface p-4 shadow-card sm:hidden space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-border/60">
+          <span className="text-xs font-semibold text-foreground">Arus Kas Periode Ini</span>
+          <span
+            className={cx(
+              "rounded-full px-2.5 py-0.5 text-[10px] font-bold font-mono tracking-wide",
+              summary.net >= 0
+                ? "bg-income-soft text-income border border-income/30"
+                : "bg-expense-soft text-expense border border-expense/30",
+            )}
+          >
+            {summary.net >= 0 ? "Surplus +" : "Defisit −"}
+            {formatRupiah(Math.abs(summary.net))}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="rounded-2xl border border-income/20 bg-income-soft/30 p-3">
+            <div className="flex items-center gap-1 text-[11px] font-semibold text-income">
+              <IconArrowDown className="h-3.5 w-3.5 rotate-180" />
+              <span>Penerimaan</span>
+            </div>
+            <p className="mt-1 text-base font-bold font-mono tracking-tight text-income">
+              {formatRupiah(summary.income)}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {summary.transactionCount} mutasi masuk
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-expense/20 bg-expense-soft/30 p-3">
+            <div className="flex items-center gap-1 text-[11px] font-semibold text-expense">
+              <IconArrowUp className="h-3.5 w-3.5" />
+              <span>Pengeluaran</span>
+            </div>
+            <p className="mt-1 text-base font-bold font-mono tracking-tight text-expense">
+              {formatRupiah(summary.expense)}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Beban operasional</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop StatCards (sm:grid ke atas) */}
+      <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
-          label="Pemasukan"
+          label="Penerimaan Kas (Inflow)"
           value={formatRupiah(summary.income)}
           tone="income"
-          hint={`${summary.transactionCount} transaksi bulan ini`}
+          hint={`${summary.transactionCount} mutasi kas masuk periode ini`}
           icon={<IconArrowDown className="h-[1.15rem] w-[1.15rem]" />}
         />
         <StatCard
-          label="Pengeluaran"
+          label="Beban Kas Keluar (Outflow)"
           value={formatRupiah(summary.expense)}
           tone="expense"
           hint={
             flow.lent > 0
-              ? `Setelah dikurangi ${formatRupiah(flow.lent)} piutang`
-              : undefined
+              ? `Setelah dikurangi ${formatRupiah(flow.lent)} piutang termin`
+              : "Beban kas & operasional kantor"
           }
           icon={<IconArrowUp className="h-[1.15rem] w-[1.15rem]" />}
         />
         <StatCard
-          label="Selisih bulan ini"
+          label="Surplus / Defisit Kas"
           value={formatRupiah(summary.net)}
           tone={summary.net >= 0 ? "income" : "expense"}
           hint={
             flow.lent > 0
-              ? `Pengeluaran riil ${formatRupiah(realExpense)}`
-              : `Saldo seluruh akun ${formatRupiah(wealth.cash)}`
+              ? `Beban kas riil ${formatRupiah(realExpense)}`
+              : `Saldo kas perbendaharaan ${formatRupiah(wealth.cash)}`
           }
           icon={<IconScale className="h-[1.15rem] w-[1.15rem]" />}
         />
@@ -194,19 +359,19 @@ export default async function DashboardPage({
 
       <Card>
         <CardHeader
-          title="Perbandingan arus kas"
-          description="Pemasukan dan pengeluaran bulan terpilih."
+          title="Keseimbangan Arus Kas Perbendaharaan"
+          description="Perbandingan arus kas masuk dan beban kas operasional periode ini."
         />
         <div className="space-y-4 p-5">
           <FlowBar
-            label="Pemasukan"
+            label="Penerimaan Kas"
             value={summary.income}
             max={maxFlow}
             barClass="bg-income"
             textClass="text-income"
           />
           <FlowBar
-            label="Pengeluaran"
+            label="Beban Pengeluaran"
             value={summary.expense}
             max={maxFlow}
             barClass="bg-expense"
@@ -215,11 +380,13 @@ export default async function DashboardPage({
         </div>
       </Card>
 
+      <BudgetCard rows={budgets} canManage={canManage} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <BreakdownCard
-          title="Pengeluaran per kategori"
+          title="Alokasi Pengeluaran per Pos Anggaran"
           rows={expenseBreakdown}
-          emptyText="Belum ada pengeluaran pada bulan ini."
+          emptyText="Belum ada beban operasional pada periode ini."
           emptyAction={
             <Link href="/transaksi/baru" className={buttonStyles("secondary", "sm")}>
               Catat pengeluaran pertama
@@ -227,29 +394,33 @@ export default async function DashboardPage({
           }
         />
         <BreakdownCard
-          title="Pemasukan per kategori"
+          title="Sumber Penerimaan Kas Perusahaan"
           rows={incomeBreakdown}
-          emptyText="Belum ada pemasukan pada bulan ini."
+          emptyText="Belum ada penerimaan kas pada periode ini."
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader
-            title="Saldo akun"
-            description={`${wealth.accountCount} akun, termasuk ${
-              wealth.archivedCount > 0 ? `${wealth.archivedCount} terarsip` : "tanpa arsip"
-            } · total ${formatRupiah(wealth.cash)}`}
+            title="Rekening Bank & Kas Operasional"
+            description={`${wealth.accountCount} rekening aktif · Total likuiditas ${formatRupiah(wealth.cash)}`}
           />
           {sortedAccounts.length === 0 ? (
             <EmptyState
               compact
               title="Belum ada akun"
-              description="Tambahkan akun untuk mulai mencatat transaksi."
+              description={
+                canManage
+                  ? "Tambahkan akun untuk mulai mencatat transaksi."
+                  : "Belum ada rekening atau kas operasional yang terdaftar. Hubungi Administrator."
+              }
               action={
-                <Link href="/akun" className={buttonStyles("secondary", "sm")}>
-                  Kelola akun
-                </Link>
+                canManage ? (
+                  <Link href="/akun" className={buttonStyles("secondary", "sm")}>
+                    Kelola akun
+                  </Link>
+                ) : undefined
               }
             />
           ) : (
@@ -301,7 +472,7 @@ export default async function DashboardPage({
 
         <Card>
           <CardHeader
-            title="Transaksi terbaru"
+            title="Jurnal Mutasi Kas Terkini"
             action={
               <Link href="/transaksi" className={buttonStyles("ghost", "sm")}>
                 Lihat semua
@@ -310,12 +481,13 @@ export default async function DashboardPage({
           />
           {recent.length === 0 ? (
             <EmptyState
+              withCharacter
               compact
-              title="Belum ada transaksi"
-              description="Transaksi yang dicatat akan muncul di sini."
+              title="Belum ada mutasi kas"
+              description="Mutasi kas masuk dan keluar yang tercatat akan tampil di sini."
               action={
                 <Link href="/transaksi/baru" className={buttonStyles("secondary", "sm")}>
-                  Catat transaksi
+                  Catat mutasi kas
                 </Link>
               }
             />

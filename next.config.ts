@@ -15,6 +15,14 @@ const distDir = process.env.NEXT_DIST_DIR || ".next";
 
 const nextConfig: NextConfig = {
   distDir,
+  experimental: {
+    serverActions: {
+      // Batas bawaan Server Action 1 MB. Bukti nota boleh sampai 5 MB (lihat
+      // MAX_PROOF_BYTES di src/lib/proof-rules.ts) ditambah isian form, jadi
+      // tanpa ini berkas di atas 1 MB ditolak Next sebelum kode kita jalan.
+      bodySizeLimit: "6mb",
+    },
+  },
 };
 
 export default nextConfig;

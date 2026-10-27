@@ -19,11 +19,13 @@ import {
 import { LunasButton } from "@/components/receivables/LunasButton";
 import type { SelectOption } from "@/components/receivables/ReceivableForm";
 import { Card, EmptyState, StatCard, buttonStyles, cx } from "@/components/ui";
+import { AccessDenied } from "@/components/layout/AccessDenied";
+import { isAdminSession } from "@/lib/session";
 import type { ReceivableRow } from "@/server/queries/receivables";
 
-export const metadata = { title: "Piutang · Keuangan" };
+export const metadata = { title: "Piutang" };
 
-// Membaca langsung dari SQLite, jadi harus dirender pada setiap permintaan.
+// Membaca langsung dari database, jadi harus dirender pada setiap permintaan.
 export const dynamic = "force-dynamic";
 
 export default async function ReceivablesPage({
@@ -31,6 +33,8 @@ export default async function ReceivablesPage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
+  if (!(await isAdminSession())) return <AccessDenied />;
+
   const params = await searchParams;
   const filter = parseReceivableFilter(params.filter);
 

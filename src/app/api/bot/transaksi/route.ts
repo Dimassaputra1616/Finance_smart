@@ -5,6 +5,7 @@ import { toUtcMidnight } from "@/lib/date";
 import { MAX_RUPIAH } from "@/lib/money";
 import { isTransactionKind } from "@/lib/types";
 import { getRecentTransactions } from "@/server/queries/finance";
+import { revalidateFinancePages } from "@/server/actions/revalidate";
 
 /**
  * API untuk bot Telegram.
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  revalidateFinancePages();
   return NextResponse.json({ ok: true, transaction: created }, { status: 201 });
 }
 
@@ -208,5 +210,6 @@ export async function DELETE(request: NextRequest) {
   }
 
   await db.transaction.delete({ where: { id } });
+  revalidateFinancePages();
   return NextResponse.json({ ok: true, id });
 }

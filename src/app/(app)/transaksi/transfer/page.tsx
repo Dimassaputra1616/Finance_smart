@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getActiveAccounts } from "@/server/queries/finance";
+import { getAccountBalances } from "@/server/queries/finance";
 import { getTransfers } from "@/server/queries/transfers";
 import { createTransfer } from "@/server/actions/transfers";
 import { formatDateShort } from "@/lib/date";
@@ -10,6 +10,8 @@ import {
   type TransferAccountOption,
 } from "@/components/transactions/TransferForm";
 import { DeleteTransferButton } from "@/components/transactions/DeleteTransferButton";
+import { AccessDenied } from "@/components/layout/AccessDenied";
+import { isAdminSession } from "@/lib/session";
 import {
   Alert,
   Card,
@@ -19,20 +21,24 @@ import {
   cx,
 } from "@/components/ui";
 
-export const metadata = { title: "Transfer · Keuangan" };
+export const metadata = { title: "Transfer" };
 
 // Daftar akun dan transfer diambil dari database saat request.
 export const dynamic = "force-dynamic";
 
 export default async function TransferPage() {
+  if (!(await isAdminSession())) return <AccessDenied />;
+
   const [accounts, transfers] = await Promise.all([
-    getActiveAccounts(),
+    getAccountBalances(),
     getTransfers(),
   ]);
 
   const accountOptions: TransferAccountOption[] = accounts.map((account) => ({
     id: account.id,
     name: account.name,
+    balance: account.balance,
+    type: account.type,
   }));
 
   return (

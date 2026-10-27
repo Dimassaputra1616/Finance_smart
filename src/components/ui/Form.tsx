@@ -167,6 +167,7 @@ export function CurrencyInput({
   placeholder = "0",
   id,
   "aria-describedby": ariaDescribedBy,
+  onValueChange,
 }: {
   name: string;
   defaultValue?: number;
@@ -175,6 +176,7 @@ export function CurrencyInput({
   placeholder?: string;
   id?: string;
   "aria-describedby"?: string;
+  onValueChange?: (amount: number | null) => void;
 }) {
   const [value, setValue] = useState(
     defaultValue ? formatInputAmount(defaultValue) : "",
@@ -197,11 +199,13 @@ export function CurrencyInput({
           const digits = event.target.value.replace(/\D/g, "");
           if (digits.length === 0) {
             setValue("");
+            onValueChange?.(null);
             return;
           }
           const parsed = Number.parseInt(digits, 10);
           if (parsed > MAX_RUPIAH) return;
           setValue(formatInputAmount(parsed));
+          onValueChange?.(parsed);
         }}
         className={cx(
           FIELD_STYLES,

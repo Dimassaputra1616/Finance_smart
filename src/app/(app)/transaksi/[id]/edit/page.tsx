@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { updateTransaction } from "@/server/actions/transactions";
 import {
-  getActiveAccounts,
+  getAccountBalances,
   getActiveCategories,
   getTransactionById,
 } from "@/server/queries/finance";
@@ -17,7 +17,7 @@ import {
 } from "@/components/transactions/TransactionForm";
 import { Card, cx } from "@/components/ui";
 
-export const metadata = { title: "Ubah Transaksi · Keuangan" };
+export const metadata = { title: "Ubah Transaksi" };
 
 export default async function EditTransactionPage({
   params,
@@ -30,14 +30,20 @@ export default async function EditTransactionPage({
   if (!transaction) notFound();
 
   const [accounts, categories] = await Promise.all([
-    getActiveAccounts(),
+    getAccountBalances({ includeArchived: true }),
     getActiveCategories(),
   ]);
 
-  const accountOptions: AccountOption[] = accounts.map((account) => ({
-    id: account.id,
-    name: account.name,
-  }));
+  const accountOptions: AccountOption[] = accounts
+    .filter((a) => !a.isArchived || a.id === transaction.accountId)
+    .map((account) => ({
+      id: account.id,
+      name: account.isArchived
+        ? `${account.name} (diarsipkan)`
+        : account.name,
+      balance: account.balance,
+      type: account.type,
+    }));
 
   const categoryOptions: CategoryOption[] = categories.map((category) => ({
     id: category.id,
@@ -112,6 +118,7 @@ export default async function EditTransactionPage({
             notes: transaction.notes,
             accountId: transaction.accountId,
             categoryId: transaction.categoryId,
+            status: transaction.status,
           }}
         />
       </Card>

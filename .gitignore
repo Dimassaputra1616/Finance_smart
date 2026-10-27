@@ -60,3 +60,8 @@ oracle-cloud-init-FINAL.yaml
 
 # backup migrasi SQLite lama (sudah di Git history)
 prisma/migrations-sqlite-backup/
+
+# user upload files (bukti nota/struk)
+public/uploads/
+/storage/
+screenshots/

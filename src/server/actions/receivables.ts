@@ -2,6 +2,7 @@
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { adminGuard } from "@/lib/session";
 import { toDateInputValue, toUtcMidnight } from "@/lib/date";
 import {
   paymentFormSchema,
@@ -124,6 +125,9 @@ export async function createReceivable(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const parsed = receivableFormSchema.safeParse(readReceivableForm(formData));
 
   if (!parsed.success) {
@@ -166,6 +170,7 @@ export async function createReceivable(
           notes: [title, notes].filter(Boolean).join(" · ") || null,
           accountId,
           categoryId,
+          status: "APPROVED",
         },
       });
 
@@ -197,6 +202,9 @@ export async function updateReceivable(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = receivableIdSchema.safeParse({
     receivableId: formData.get("id"),
   });
@@ -309,6 +317,9 @@ export async function toggleCancelReceivable(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = receivableIdSchema.safeParse({
     receivableId: formData.get("id"),
   });
@@ -365,6 +376,9 @@ export async function deleteReceivable(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = receivableIdSchema.safeParse({
     receivableId: formData.get("id"),
   });
@@ -425,6 +439,9 @@ export async function addPayment(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const idParsed = receivableIdSchema.safeParse({
     receivableId: formData.get("receivableId"),
   });
@@ -528,6 +545,7 @@ export async function addPayment(
           notes: notes.length > 0 ? notes : null,
           accountId,
           categoryId,
+          status: "APPROVED",
         },
       });
 
@@ -566,6 +584,9 @@ export async function deletePayment(
   _previous: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const parsed = paymentIdSchema.safeParse({
     receivableId: formData.get("receivableId"),
     paymentId: formData.get("paymentId"),

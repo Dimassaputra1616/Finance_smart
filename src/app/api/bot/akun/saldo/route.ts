@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { MAX_RUPIAH } from "@/lib/money";
 import { isAccountType } from "@/lib/types";
+import { revalidateFinancePages } from "@/server/actions/revalidate";
 
 /**
  * API untuk bot Telegram: set saldo akun.
@@ -115,11 +116,17 @@ export async function POST(request: NextRequest) {
 
   const newInitial = balance - txNet;
 
+  if (newInitial > MAX_RUPIAH || newInitial < -MAX_RUPIAH) {
+    return badRequest("Koreksi saldo awal di luar rentang angka yang sah.");
+  }
+
   const updated = await db.account.update({
     where: { id: account.id },
     data: { initialBalance: newInitial },
     select: { id: true, name: true, type: true, initialBalance: true },
   });
+
+  revalidateFinancePages();
 
   return NextResponse.json({
     ok: true,

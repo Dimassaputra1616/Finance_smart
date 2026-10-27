@@ -29,6 +29,11 @@ export default function GlobalError({
         jalankan <code>npm run db:migrate</code> lalu{" "}
         <code>npm run db:seed</code>.
       </p>
+      {error.message ? (
+        <div className="mt-3 rounded-xl border border-destructive-border bg-destructive-soft/60 p-3 text-left font-mono text-xs text-destructive overflow-auto max-h-36">
+          {error.message}
+        </div>
+      ) : null}
       {error.digest ? (
         <p className="mt-2 text-xs text-subtle-foreground">Ref: {error.digest}</p>
       ) : null}

@@ -6,6 +6,7 @@ import {
   TRANSACTION_KIND_LABELS,
   type TransactionKind,
 } from "@/lib/types";
+import { formatRupiah } from "@/lib/money";
 import { IconCategory } from "@/components/Icons";
 import { CategoryForm } from "@/components/categories/CategoryForm";
 import {
@@ -13,13 +14,17 @@ import {
   ToggleArchiveCategoryButton,
 } from "@/components/categories/CategoryActions";
 import { Card, CardHeader, EmptyState, cx } from "@/components/ui";
+import { AccessDenied } from "@/components/layout/AccessDenied";
+import { isAdminSession } from "@/lib/session";
 
-export const metadata = { title: "Kategori · Keuangan" };
+export const metadata = { title: "Pos Anggaran" };
 
-// Membaca langsung dari SQLite, jadi harus dirender pada setiap permintaan.
+// Membaca langsung dari database, jadi harus dirender pada setiap permintaan.
 export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
+  if (!(await isAdminSession())) return <AccessDenied />;
+
   const categories = await getCategoriesWithUsage();
 
   return (
@@ -79,6 +84,9 @@ export default async function CategoriesPage() {
                               </p>
                               <p className="text-xs text-subtle-foreground">
                                 {category.transactionCount} transaksi
+                                {category.monthlyBudget !== null
+                                  ? ` · Pagu ${formatRupiah(category.monthlyBudget)}/bulan`
+                                  : ""}
                               </p>
                             </div>
                           </div>
@@ -110,6 +118,7 @@ export default async function CategoriesPage() {
                                 name: category.name,
                                 kind: category.kind as TransactionKind,
                                 color: category.color,
+                                monthlyBudget: category.monthlyBudget,
                               }}
                             />
                           </div>

@@ -1,40 +1,42 @@
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../src/lib/auth-passwords";
 
 /**
  * Seed data awal.
  *
  * Idempoten: aman dijalankan berulang karena setiap baris di-upsert lewat
- * unique constraint `@@unique([name, kind])` pada Category.
+ * unique constraint.
  */
 
 const prisma = new PrismaClient();
+// Casting fleksibel agar tsc tidak komplain sebelum `prisma generate` dieksekusi
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = prisma as any;
 
 const EXPENSE_CATEGORIES: Array<{ name: string; color: string }> = [
-  { name: "Makan & Minum", color: "#f97316" },
-  { name: "Transportasi", color: "#0ea5e9" },
-  { name: "Tagihan & Utilitas", color: "#6366f1" },
-  { name: "Belanja", color: "#ec4899" },
-  { name: "Hiburan", color: "#a855f7" },
-  { name: "Kesehatan", color: "#14b8a6" },
-  { name: "Pendidikan", color: "#3b82f6" },
-  // Uang yang keluar sebagai piutang. Pembayarannya dicatat sebagai pemasukan
-  // dengan kategori bernama sama, sehingga sisa piutang bisa direkonsiliasi dari
-  // satu sumber data.
+  { name: "Operasional Kantor", color: "#6366f1" },
+  { name: "Gaji & Upah", color: "#22c55e" },
+  { name: "Listrik & Utilitas", color: "#0ea5e9" },
+  { name: "Transport & Bensin", color: "#f97316" },
+  { name: "ATK & Perlengkapan", color: "#a855f7" },
+  { name: "Konsumsi & Snack", color: "#ec4899" },
+  { name: "Pajak & Legalitas", color: "#ca8a04" },
   { name: "Piutang", color: "#f43f5e" },
   { name: "Lain-lain", color: "#64748b" },
 ];
 
 const INCOME_CATEGORIES: Array<{ name: string; color: string }> = [
-  { name: "Gaji", color: "#22c55e" },
-  { name: "Bonus", color: "#16a34a" },
-  { name: "Warisan", color: "#ca8a04" },
+  { name: "Pendapatan Proyek", color: "#22c55e" },
+  { name: "Penjualan Produk/Jasa", color: "#16a34a" },
+  { name: "Investasi / Modal", color: "#ca8a04" },
   { name: "Piutang", color: "#f43f5e" },
   { name: "Lain-lain", color: "#64748b" },
 ];
 
 async function main() {
+  // 1. Kategori
   for (const category of EXPENSE_CATEGORIES) {
-    await prisma.category.upsert({
+    await db.category.upsert({
       where: { name_kind: { name: category.name, kind: "EXPENSE" } },
       update: { color: category.color },
       create: { name: category.name, kind: "EXPENSE", color: category.color },
@@ -42,28 +44,55 @@ async function main() {
   }
 
   for (const category of INCOME_CATEGORIES) {
-    await prisma.category.upsert({
+    await db.category.upsert({
       where: { name_kind: { name: category.name, kind: "INCOME" } },
       update: { color: category.color },
       create: { name: category.name, kind: "INCOME", color: category.color },
     });
   }
 
-  const existingAccount = await prisma.account.findFirst({
-    where: { name: "Dompet Tunai" },
+  // 2. Akun kas kantor bawaan
+  const existingAccount = await db.account.findFirst({
+    where: { name: "Kas Operasional" },
   });
 
   if (!existingAccount) {
-    await prisma.account.create({
-      data: { name: "Dompet Tunai", type: "TUNAI", initialBalance: 0 },
+    await db.account.create({
+      data: { name: "Kas Operasional", type: "TUNAI", initialBalance: 0 },
     });
   }
 
-  const categoryCount = await prisma.category.count();
-  const accountCount = await prisma.account.count();
+  // 3. User default RBAC: ADMIN & STAFF
+  const adminPasswordHash = hashPassword("admin123");
+  await db.user.upsert({
+    where: { username: "admin" },
+    update: {},
+    create: {
+      name: "Administrator",
+      username: "admin",
+      passwordHash: adminPasswordHash,
+      role: "ADMIN",
+    },
+  });
+
+  const staffPasswordHash = hashPassword("staf123");
+  await db.user.upsert({
+    where: { username: "staf" },
+    update: {},
+    create: {
+      name: "Staf Operasional",
+      username: "staf",
+      passwordHash: staffPasswordHash,
+      role: "STAFF",
+    },
+  });
+
+  const categoryCount = await db.category.count();
+  const accountCount = await db.account.count();
+  const userCount = await db.user.count();
 
   console.log(
-    `Seed selesai: ${categoryCount} kategori, ${accountCount} akun.`,
+    `Seed selesai: ${categoryCount} kategori, ${accountCount} akun, ${userCount} user.`,
   );
 }
 

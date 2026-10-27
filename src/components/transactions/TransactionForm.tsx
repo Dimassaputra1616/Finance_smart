@@ -8,7 +8,13 @@ import {
   type TransactionKind,
 } from "@/lib/types";
 import { getTodayInputValue, toDateInputValue } from "@/lib/date";
-import { IconArrowDown, IconArrowUp } from "@/components/Icons";
+import { formatRupiah } from "@/lib/money";
+import {
+  balanceExcludingTransaction,
+  checkInsufficientBalance,
+} from "@/lib/account-balance-rules";
+import { IconAlert, IconArrowDown, IconArrowUp } from "@/components/Icons";
+import { ProofUpload } from "./ProofUpload";
 import {
   Alert,
   alertDuration,
@@ -23,7 +29,12 @@ import {
 
 const INITIAL_RESULT: ActionResult = { ok: false, message: "" };
 
-export type AccountOption = { id: string; name: string };
+export type AccountOption = {
+  id: string;
+  name: string;
+  balance?: number;
+  type?: string;
+};
 export type CategoryOption = {
   id: string;
   name: string;
@@ -39,6 +50,8 @@ export type TransactionDefaults = {
   notes: string | null;
   accountId: string;
   categoryId: string;
+  /** Dipakai untuk menghitung saldo tanpa pengaruh transaksi ini saat diubah. */
+  status?: string;
 };
 
 /**
@@ -68,6 +81,35 @@ export function TransactionForm({
   const [kind, setKind] = useState<TransactionKind>(
     transaction?.kind ?? "EXPENSE",
   );
+  const [enteredAmount, setEnteredAmount] = useState<number | null>(
+    transaction?.amount ?? null,
+  );
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(
+    transaction?.accountId ?? "",
+  );
+
+  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
+  const balanceCheck =
+    selectedAccount && selectedAccount.balance !== undefined
+      ? checkInsufficientBalance({
+          accountType: selectedAccount.type,
+          // Di mode ubah, pengaruh transaksi aslinya dikembalikan dulu agar
+          // tidak memunculkan peringatan palsu.
+          balance: balanceExcludingTransaction({
+            balance: selectedAccount.balance,
+            sameAccount: transaction?.accountId === selectedAccount.id,
+            original: transaction
+              ? {
+                  kind: transaction.kind,
+                  amount: transaction.amount,
+                  status: transaction.status,
+                }
+              : null,
+          }),
+          amount: enteredAmount,
+          kind,
+        })
+      : null;
 
   // Kategori difilter sesuai jenis agar pengguna tidak bisa memilih kategori
   // pemasukan pada transaksi pengeluaran.
@@ -170,6 +212,7 @@ export function TransactionForm({
             name="amount"
             defaultValue={transaction?.amount}
             invalid={Boolean(errors?.amount)}
+            onValueChange={setEnteredAmount}
           />
         </FormField>
 
@@ -207,24 +250,52 @@ export function TransactionForm({
       </FormField>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <FormField label="Akun" htmlFor="accountId" required errors={errors?.accountId}>
-          <Select
-            id="accountId"
-            name="accountId"
-            defaultValue={transaction?.accountId ?? ""}
-            invalid={Boolean(errors?.accountId)}
-            required
-          >
-            <option value="" disabled>
-              Pilih akun
-            </option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
+        <div className="space-y-1.5">
+          <FormField label="Akun" htmlFor="accountId" required errors={errors?.accountId}>
+            <Select
+              id="accountId"
+              name="accountId"
+              value={selectedAccountId}
+              onChange={(e) => setSelectedAccountId(e.target.value)}
+              invalid={Boolean(errors?.accountId)}
+              required
+            >
+              <option value="" disabled>
+                Pilih akun
               </option>
-            ))}
-          </Select>
-        </FormField>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                  {account.balance !== undefined
+                    ? ` · ${formatRupiah(account.balance)}`
+                    : ""}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          {selectedAccount && selectedAccount.balance !== undefined ? (
+            <div className="flex flex-wrap items-center justify-between gap-1 text-xs px-0.5">
+              <span className="text-subtle-foreground">
+                Saldo akun saat ini:{" "}
+                <strong
+                  className={cx(
+                    "font-mono font-semibold tabular-nums",
+                    selectedAccount.balance < 0 ? "text-expense" : "text-foreground",
+                  )}
+                >
+                  {formatRupiah(selectedAccount.balance)}
+                </strong>
+              </span>
+              {balanceCheck?.isInsufficient ? (
+                <span className="inline-flex items-center gap-1 rounded-md border border-warning-border/40 bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-warning animate-fade-in">
+                  <IconAlert className="h-3 w-3 shrink-0" />
+                  <span>Saldo kas tidak mencukupi</span>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
         <FormField
           label="Kategori"
@@ -252,6 +323,15 @@ export function TransactionForm({
           </Select>
         </FormField>
       </div>
+
+      <FormField
+        label="Bukti / Nota Transaksi"
+        htmlFor="proof-input"
+        errors={errors?.proof}
+        hint="Foto struk kamera HP otomatis dikompres ~200 KB (teks tetap tajam)."
+      >
+        <ProofUpload />
+      </FormField>
 
       <FormField label="Catatan" htmlFor="notes" errors={errors?.notes}>
         <Textarea

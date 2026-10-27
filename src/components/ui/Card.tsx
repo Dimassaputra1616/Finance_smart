@@ -23,7 +23,7 @@ export function Card({
         // yang menolak menyusut, dan teks panjang di dalamnya mengabaikan
         // `truncate`: kartu ikut melebar dan seluruh halaman bisa digeser ke
         // samping. Diverifikasi dengan `scripts/audit-viewport.ts`.
-        "min-w-0 rounded-card border border-border/70 bg-surface/80 shadow-card backdrop-blur-md",
+        "min-w-0 rounded-card border border-border bg-surface shadow-card backdrop-blur-md",
         padded && "p-5",
         className,
       )}
@@ -43,7 +43,7 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 bg-surface-muted/30 px-5 py-4">
+    <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-surface-muted/50 px-5 py-4">
       <div>
         <h2 className="text-[0.95rem] font-semibold tracking-tight text-foreground">
           {title}
@@ -65,17 +65,17 @@ const TONE_STYLES: Record<
 > = {
   neutral: {
     value: "text-foreground",
-    chip: "bg-surface-muted text-muted-foreground",
+    chip: "bg-surface-muted text-muted-foreground border border-border/80",
     glow: "from-foreground/5",
   },
   income: {
     value: "text-income",
-    chip: "bg-income-soft text-income",
+    chip: "bg-income-soft text-income border border-income/30",
     glow: "from-income/10",
   },
   expense: {
     value: "text-expense",
-    chip: "bg-expense-soft text-expense",
+    chip: "bg-expense-soft text-expense border border-expense/30",
     glow: "from-expense/10",
   },
 };
@@ -102,7 +102,7 @@ export function StatCard({
   const styles = TONE_STYLES[tone];
 
   return (
-    <div className="group relative min-w-0 overflow-hidden rounded-card border border-border/70 bg-surface/80 p-5 shadow-card backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lifted">
+    <div className="group relative min-w-0 overflow-hidden rounded-card border border-border bg-surface p-5 shadow-card backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lifted">
       <div
         aria-hidden="true"
         className={cx(

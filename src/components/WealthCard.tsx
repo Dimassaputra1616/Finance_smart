@@ -1,15 +1,12 @@
 import { formatRupiah } from "@/lib/money";
 import type { WealthSummary } from "@/lib/wealth";
-import { IconAlert, IconReceivable, IconWallet } from "@/components/Icons";
+import { IconAlert, IconReceivable, IconWallet, IconShield } from "@/components/Icons";
 
 /**
- * Kartu utama dashboard: total kekayaan.
+ * Kartu Utama Dashboard: Posisi Likuiditas & Perbendaharaan Perusahaan.
  *
- * Angka ini memakai token `primary`, yang otomatis berubah jadi terang saat
- * mode gelap aktif, jadi kontrasnya tetap terjaga di kedua mode tanpa perlu
- * varian `dark:` tambahan.
- *
- * Komponen ini sengaja tanpa state agar tetap bisa dipakai di Server Component.
+ * Mengusung estetika perbendaharaan perbankan korporat:
+ * Menampilkan total aset likuid (Kas Operasional + Piutang Usaha yang dapat ditagih).
  */
 export function WealthCard({
   wealth,
@@ -21,81 +18,69 @@ export function WealthCard({
   overdueAmount: number;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-card bg-linear-to-br from-primary via-primary to-sidebar-brand-to p-6 text-primary-foreground shadow-lifted sm:p-7">
-      {/* Cahaya lembut di sudut kanan, murni dekoratif. */}
+    <section className="relative overflow-hidden rounded-3xl border border-border/80 bg-linear-to-br from-[#12281e] via-[#163327] to-[#1e4233] p-6 text-[#f2f6f4] shadow-lifted sm:p-7">
+      {/* Cahaya ambient emas sampanye halus di sudut kanan */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-accent-glow blur-2xl"
+        className="pointer-events-none absolute -right-16 -top-16 h-60 w-60 rounded-full bg-[#c49a45]/20 blur-3xl"
       />
-      {/* `primary-foreground`, bukan `white`: kartu ini teksnya berwarna
-          `primary-foreground`, jadi garis tipisnya ikut token yang sama supaya
-          tetap benar kalau palet primary berubah. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 left-1/3 h-44 w-44 rounded-full border border-primary-foreground/15"
+        className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full border border-white/10"
       />
 
       <div className="relative flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-widest opacity-70">
-            Total kekayaan
-            <span className="normal-case tracking-normal opacity-60">
-              {" "}
-              · saat ini
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 items-center gap-1.5 rounded-full bg-white/10 px-2 text-[10px] font-mono uppercase tracking-wider text-[#e8c77b]">
+              <IconShield className="h-3 w-3" />
+              Posisi Kas Riil
             </span>
-          </p>
+            <span className="text-xs text-white/60 font-mono">· Periode Berjalan</span>
+          </div>
 
-          {/*
-            Ukuran fontnya fluid lewat `clamp`, bukan ukuran tetap per
-            breakpoint. Alasannya nominal bisa lebih lebar di layar kecil:
-            pada 360px, `Rp 2.147.483.647` membutuhkan ~288px, sedangkan kartu
-            hanya menyisakan ~240px. Dengan `clamp` angka menyusut sendiri,
-            dan `rp-amount` memastikan nominalnya tidak pernah terbelah di
-            tengah digit.
-          */}
-          <p className="rp-amount mt-2 text-[clamp(1.5rem,7.5vw,3rem)] font-semibold tracking-tight tabular-nums sm:text-4xl lg:text-5xl">
+          <p className="rp-amount mt-2 text-[clamp(1.75rem,8vw,3.25rem)] font-bold tracking-tight tabular-nums sm:text-4xl lg:text-5xl text-white">
             {formatRupiah(wealth.total)}
           </p>
 
           {wealth.isNegative ? (
-            <p className="mt-2 flex items-center gap-1.5 text-sm opacity-80">
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-[#fca5a5]">
               <IconAlert className="h-4 w-4 shrink-0" />
-              Utang lebih besar dari aset yang tercatat
+              Kewajiban atau penarikan kas melebihi saldo kas yang tercatat
             </p>
           ) : (
-            <p className="mt-2 text-sm opacity-70">
-              Cash {wealth.accountCount} akun + piutang yang belum lunas
+            <p className="mt-2 text-xs text-white/85">
+              Konsolidasi saldo {wealth.accountCount} rekening & kas operasional + piutang usaha tertagih
             </p>
           )}
         </div>
 
-        {/* Tumpuk vertikal di layar sempit. `shrink-0` hanya di layar lebar,
-            kalau tidak bisa memaksa keluar dari viewport di HP. */}
-        <dl className="flex w-full flex-col gap-4 sm:w-auto sm:shrink-0 sm:flex-row sm:items-end sm:gap-8">
+        {/* Breakdown Metrik Perbendaharaan: 1 Kolom di layar sangat sempit (<=375px), 2 Kolom di 380px+, horizontal di desktop */}
+        <dl className="grid w-full grid-cols-1 min-[380px]:grid-cols-2 gap-4 pt-4 border-t border-white/10 sm:border-t-0 sm:pt-0 sm:flex sm:w-auto sm:shrink-0 sm:items-end sm:gap-8">
           <Breakdown
-            icon={<IconWallet className="h-4 w-4" />}
-            label="Cash"
+            icon={<IconWallet className="h-4 w-4 text-[#e8c77b]" />}
+            label="Kas & Bank"
             value={formatRupiah(wealth.cash)}
             hint={
               wealth.archivedCount > 0
-                ? `${wealth.accountCount} akun, ${wealth.archivedCount} terarsip`
-                : `${wealth.accountCount} akun`
+                ? `${wealth.accountCount} akun (${wealth.archivedCount} diarsipkan)`
+                : `${wealth.accountCount} rekening aktif`
             }
           />
 
           <div
-            className="hidden h-14 w-px bg-current opacity-20 sm:block"
+            className="hidden h-14 w-px bg-white/20 sm:block"
             aria-hidden="true"
           />
 
           <Breakdown
-            icon={<IconReceivable className="h-4 w-4" />}
-            label="Piutang"
+            icon={<IconReceivable className="h-4 w-4 text-[#e8c77b]" />}
+            label="Piutang Usaha (AR)"
             value={formatRupiah(wealth.receivable)}
             hint={
               overdueCount > 0
-                ? `${overdueCount} terlambat · ${formatRupiah(overdueAmount)}`
-                : "Tidak ada yang terlambat"
+                ? `${overdueCount} tagihan jatuh tempo (${formatRupiah(overdueAmount)})`
+                : "Semua tagihan lancar"
             }
           />
         </dl>
@@ -116,15 +101,15 @@ function Breakdown({
   hint: string;
 }) {
   return (
-    <div>
-      <dt className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest opacity-70">
+    <div className="min-w-0">
+      <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-white/80">
         {icon}
-        {label}
+        <span className="truncate">{label}</span>
       </dt>
-      <dd className="mt-1.5 text-lg font-semibold tabular-nums sm:text-xl">
+      <dd className="rp-amount mt-1 text-lg font-bold tabular-nums sm:text-xl text-white font-mono">
         {value}
       </dd>
-      <p className="mt-0.5 text-xs opacity-60">{hint}</p>
+      <p className="mt-0.5 text-xs text-white/70 truncate">{hint}</p>
     </div>
   );
 }

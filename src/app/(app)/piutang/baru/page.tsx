@@ -4,13 +4,17 @@ import { getActiveAccounts, getActiveCategories } from "@/server/queries/finance
 import { IconArrowLeft } from "@/components/Icons";
 import { ReceivableForm } from "@/components/receivables/ReceivableForm";
 import { Card, EmptyState, buttonStyles } from "@/components/ui";
+import { AccessDenied } from "@/components/layout/AccessDenied";
+import { isAdminSession } from "@/lib/session";
 
-export const metadata = { title: "Catat Piutang · Keuangan" };
+export const metadata = { title: "Catat Piutang" };
 
 // Daftar akun dan kategori diambil dari database saat request.
 export const dynamic = "force-dynamic";
 
 export default async function NewReceivablePage() {
+  if (!(await isAdminSession())) return <AccessDenied />;
+
   const [accounts, categories] = await Promise.all([
     getActiveAccounts(),
     getActiveCategories(),

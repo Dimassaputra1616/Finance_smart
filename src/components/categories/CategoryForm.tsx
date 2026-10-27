@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   TRANSACTION_KINDS,
   TRANSACTION_KIND_LABELS,
@@ -13,6 +13,7 @@ import {
   alertDuration,
   Button,
   ColorInput,
+  CurrencyInput,
   FormField,
   Input,
   cx,
@@ -38,6 +39,7 @@ export type CategoryDefaults = {
   name: string;
   kind: TransactionKind;
   color: string;
+  monthlyBudget: number | null;
 };
 
 /** Form tambah atau ubah kategori. */
@@ -55,7 +57,9 @@ export function CategoryForm({
 }) {
   const [result, formAction, pending] = useActionState(action, INITIAL_RESULT);
   const errors = result.ok ? undefined : result.errors;
-  const currentKind = category?.kind ?? "EXPENSE";
+  const [currentKind, setCurrentKind] = useState<TransactionKind>(
+    category?.kind ?? "EXPENSE",
+  );
 
   return (
     <form action={formAction} className="space-y-5">
@@ -109,7 +113,8 @@ export function CategoryForm({
                   type="radio"
                   name="kind"
                   value={option}
-                  defaultChecked={currentKind === option}
+                  checked={currentKind === option}
+                  onChange={() => setCurrentKind(option)}
                   className="sr-only"
                 />
                 <span
@@ -133,6 +138,24 @@ export function CategoryForm({
           </p>
         ) : null}
       </fieldset>
+
+      {/* Pagu cuma bermakna untuk pengeluaran. Field tidak dirender untuk
+          pemasukan, jadi tidak ikut terkirim; server tetap memaksa null. */}
+      {currentKind === "EXPENSE" ? (
+        <FormField
+          label="Pagu bulanan"
+          htmlFor="monthlyBudget"
+          errors={errors?.monthlyBudget}
+          hint="Opsional. Kosongkan bila pos ini tidak dibatasi."
+        >
+          <CurrencyInput
+            id="monthlyBudget"
+            name="monthlyBudget"
+            defaultValue={category?.monthlyBudget ?? undefined}
+            invalid={Boolean(errors?.monthlyBudget)}
+          />
+        </FormField>
+      ) : null}
 
       <FormField
         label="Warna"

@@ -79,6 +79,32 @@ export const amountSchema = z
     return parsed;
   });
 
+/**
+ * Nominal opsional, misalnya pagu bulanan kategori. Kosong berarti "tidak
+ * diisi" dan menjadi `null`; kalau diisi, aturannya sama dengan `amountSchema`
+ * (positif, maksimal batas Int 32-bit). Nol ditolak karena pagu Rp 0 tidak
+ * bermakna: untuk tanpa pagu, kosongkan saja.
+ */
+export const optionalAmountSchema = z
+  .string()
+  .transform((value) => value.trim())
+  .transform((value, ctx) => {
+    if (value === "") return null;
+
+    const parsed = parseRupiahInput(value);
+
+    if (parsed === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Pagu harus berupa angka positif dan maksimal Rp 2.147.483.647.",
+      });
+      return z.NEVER;
+    }
+
+    return parsed;
+  });
+
 /** Saldo awal akun: boleh nol atau negatif (misalnya overdraft kartu kredit). */
 export const signedAmountSchema = z
   .string()

@@ -17,14 +17,18 @@ import {
   ToggleArchiveAccountButton,
 } from "@/components/accounts/AccountActions";
 import { Card, CardHeader, EmptyState, cx } from "@/components/ui";
+import { AccessDenied } from "@/components/layout/AccessDenied";
+import { isAdminSession } from "@/lib/session";
 
-export const metadata = { title: "Akun · Keuangan" };
+export const metadata = { title: "Rekening" };
 
-// Halaman ini membaca data langsung dari SQLite, jadi tidak boleh di-prerender
+// Halaman ini membaca data langsung dari database, jadi tidak boleh di-prerender
 // saat build. Tanpa baris ini, daftar akun ikut tertanam di HTML statis.
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
+  if (!(await isAdminSession())) return <AccessDenied />;
+
   const [accounts, balances] = await Promise.all([
     getAccountsWithUsage(),
     // Uang di akun terarsip tetap milik pengguna, jadi saldonya tetap dihitung.

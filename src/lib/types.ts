@@ -10,6 +10,23 @@
 export const TRANSACTION_KINDS = ["INCOME", "EXPENSE"] as const;
 export type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 
+export const USER_ROLES = ["ADMIN", "STAFF"] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  ADMIN: "Administrator",
+  STAFF: "Staf",
+};
+
+export const TRANSACTION_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
+
+export const TRANSACTION_STATUS_LABELS: Record<TransactionStatus, string> = {
+  PENDING: "Menunggu Persetujuan",
+  APPROVED: "Disetujui",
+  REJECTED: "Ditolak",
+};
+
 export const ACCOUNT_TYPES = ["TUNAI", "BANK", "EWALLET", "KREDIT"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
@@ -67,6 +84,20 @@ export function isTransactionKind(value: unknown): value is TransactionKind {
   return (
     typeof value === "string" &&
     (TRANSACTION_KINDS as readonly string[]).includes(value)
+  );
+}
+
+export function isUserRole(value: unknown): value is UserRole {
+  return (
+    typeof value === "string" &&
+    (USER_ROLES as readonly string[]).includes(value)
+  );
+}
+
+export function isTransactionStatus(value: unknown): value is TransactionStatus {
+  return (
+    typeof value === "string" &&
+    (TRANSACTION_STATUSES as readonly string[]).includes(value)
   );
 }
 
