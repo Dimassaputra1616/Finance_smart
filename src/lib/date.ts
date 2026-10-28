@@ -157,6 +157,14 @@ export function formatMonthLabel(monthKey: MonthKey): string {
   return `${MONTH_NAMES[parsed.month - 1]} ${parsed.year}`;
 }
 
+/** Label bulan ringkas, contoh `Okt '26`. Cocok untuk sumbu grafik dan layar sempit. */
+export function formatMonthShortLabel(monthKey: MonthKey): string {
+  const parsed = parseMonthKey(monthKey);
+  if (!parsed) return monthKey;
+
+  return `${MONTH_NAMES_SHORT[parsed.month - 1]} '${String(parsed.year).slice(2)}`;
+}
+
 /**
  * Normalisasi nilai `<input type="date">` (`YYYY-MM-DD`) menjadi UTC midnight.
  * Mengembalikan `null` untuk input rusak, termasuk tanggal kalender yang tidak

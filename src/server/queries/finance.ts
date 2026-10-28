@@ -2,7 +2,13 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { monthToRange, type MonthKey } from "@/lib/date";
+import {
+  formatMonthLabel,
+  formatMonthShortLabel,
+  monthToRange,
+  shiftMonth,
+  type MonthKey,
+} from "@/lib/date";
 import { accountBalanceOf, safeSum } from "@/lib/money";
 import { calcBudgetProgress, type BudgetRow } from "@/lib/budget-rules";
 import type { TransactionKind } from "@/lib/types";
@@ -81,6 +87,51 @@ export async function getMonthSummary(monthKey: MonthKey): Promise<MonthSummary>
     net: safeIncome - safeExpense,
     transactionCount,
   };
+}
+
+export type TrendMonthResult = {
+  monthKey: MonthKey;
+  label: string;
+  shortLabel: string;
+  income: number;
+  expense: number;
+  net: number;
+  transactionCount: number;
+};
+
+/**
+ * Mengambil tren arus kas (penerimaan vs pengeluaran) selama N bulan ke belakang
+ * (default 6 bulan) berurutan kronologis dari bulan terlama ke bulan target.
+ *
+ * Hanya memperhitungkan transaksi APPROVED agar angka tren mencerminkan kas riil sah.
+ */
+export async function getCashflowTrend(
+  targetMonthKey: MonthKey,
+  monthsCount = 6,
+): Promise<TrendMonthResult[]> {
+  const monthKeys: MonthKey[] = [];
+  for (let i = monthsCount - 1; i >= 0; i--) {
+    monthKeys.push(shiftMonth(targetMonthKey, -i));
+  }
+
+  const results = await Promise.all(
+    monthKeys.map(async (key) => {
+      const summary = await getMonthSummary(key);
+      const shortLabel = formatMonthShortLabel(key);
+      const label = formatMonthLabel(key);
+      return {
+        monthKey: key,
+        label,
+        shortLabel,
+        income: summary.income,
+        expense: summary.expense,
+        net: summary.net,
+        transactionCount: summary.transactionCount,
+      };
+    }),
+  );
+
+  return results;
 }
 
 export type CategoryBreakdownRow = {

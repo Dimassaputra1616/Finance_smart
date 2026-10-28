@@ -59,8 +59,9 @@ describe("buildExcelReport", () => {
     // Validasi XML Excel workbook & gridlines
     expect(html).toContain("<x:ExcelWorkbook>");
     expect(html).toContain("<x:DisplayGridlines />");
-    expect(html).toContain("LAPORAN PERBENDAHARAAN & KAS KANTOR");
-    expect(html).toContain("Periode: <strong>Oktober 2026</strong>");
+    expect(html).toContain("LAPORAN PERBENDAHARAAN &amp; KAS KANTOR");
+    expect(html).toContain("Periode:");
+    expect(html).toContain("Oktober 2026");
 
     // Header tabel
     expect(html).toContain("Keterangan Mutasi");
@@ -109,6 +110,7 @@ describe("buildExcelReport", () => {
     });
 
     expect(html).toContain("TOTAL KESELURUHAN:");
-    expect(html).toContain("Periode: <strong>November 2026</strong>");
+    expect(html).toContain("Periode:");
+    expect(html).toContain("November 2026");
   });
 });

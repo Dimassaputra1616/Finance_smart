@@ -6,6 +6,7 @@ import {
   getRecentTransactions,
   getPendingSummary,
   getBudgetProgress,
+  getCashflowTrend,
 } from "@/server/queries/finance";
 import {
   getReceivableFlow,
@@ -39,6 +40,7 @@ import {
 import { WealthCard } from "@/components/WealthCard";
 import { TreasurerWelcomeCard } from "@/components/dashboard/TreasurerWelcomeCard";
 import { BudgetCard } from "@/components/dashboard/BudgetCard";
+import { CashflowTrendChart } from "@/components/dashboard/CashflowTrendChart";
 import {
   Card,
   CardHeader,
@@ -69,6 +71,7 @@ export default async function DashboardPage({
     pending,
     currentUser,
     budgets,
+    trendData,
   ] = await Promise.all([
     getMonthSummary(monthKey),
     getCategoryBreakdown(monthKey, "EXPENSE"),
@@ -82,6 +85,7 @@ export default async function DashboardPage({
     getPendingSummary(),
     getCurrentUser(),
     getBudgetProgress(monthKey),
+    getCashflowTrend(monthKey, 6),
   ]);
 
   const maxFlow = Math.max(summary.income, summary.expense, 1);
@@ -356,6 +360,9 @@ export default async function DashboardPage({
           </p>
         </Card>
       ) : null}
+
+      {/* Grafik Tren Arus Kas 6 Bulan Terakhir */}
+      <CashflowTrendChart data={trendData} currentMonthKey={monthKey} />
 
       <Card>
         <CardHeader

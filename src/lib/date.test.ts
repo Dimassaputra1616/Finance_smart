@@ -5,6 +5,7 @@ import {
   formatDateLong,
   formatDateShort,
   formatMonthLabel,
+  formatMonthShortLabel,
   monthToRange,
   normalizeMonthKey,
   parseMonthKey,
@@ -77,6 +78,17 @@ describe("formatMonthLabel", () => {
 
   it("mengembalikan input apa adanya bila tidak valid", () => {
     expect(formatMonthLabel("ngawur")).toBe("ngawur");
+  });
+});
+
+describe("formatMonthShortLabel", () => {
+  it("menghasilkan label ringkas bulan dan tahun", () => {
+    expect(formatMonthShortLabel("2026-10")).toBe("Okt '26");
+    expect(formatMonthShortLabel("2025-01")).toBe("Jan '25");
+  });
+
+  it("mengembalikan input apa adanya bila tidak valid", () => {
+    expect(formatMonthShortLabel("ngawur")).toBe("ngawur");
   });
 });
 
