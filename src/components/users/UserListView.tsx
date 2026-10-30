@@ -8,7 +8,6 @@ import {
   IconSearch,
   IconShield,
   IconUser,
-  IconUsers,
 } from "@/components/Icons";
 import { Card, CardHeader, EmptyState, Input, cx } from "@/components/ui";
 import { USER_ROLE_LABELS } from "@/lib/types";

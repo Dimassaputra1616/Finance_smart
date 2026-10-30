@@ -52,7 +52,7 @@ export default async function ProfilePage() {
           </div>
           <Link
             href="/pengaturan"
-            className={buttonStyles({ variant: "secondary", size: "sm" })}
+            className={buttonStyles("secondary", "sm")}
           >
             Buka Config Master
           </Link>

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 describe("aturan notifikasi aplikasi", () => {
   it("memformat waktu relatif notifikasi dengan benar", () => {
-    const now = Date.now();
     const formatDiff = (diffSec: number) => {
       if (diffSec < 60) return "Baru saja";
       if (diffSec < 3600) return `${Math.floor(diffSec / 60)} mnt lalu`;

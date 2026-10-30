@@ -9,7 +9,6 @@ import {
   IconPencil,
   IconClose,
   IconReceipt,
-  IconCategory,
   IconSliders,
 } from "@/components/Icons";
 import { compressImageToWebP } from "@/lib/image-compress";

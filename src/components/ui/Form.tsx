@@ -100,7 +100,7 @@ export function FormField({
 export function Input({
   invalid,
   className,
-  "aria-invalid": _ariaInvalid,
+  "aria-invalid": ariaInvalidProp,
   "aria-describedby": ariaDescribedBy,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
@@ -110,7 +110,7 @@ export function Input({
       {...props}
       className={cx(FIELD_STYLES, invalid && INVALID_STYLES, className)}
       {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
-      {...(invalid ? { "aria-invalid": true } : {})}
+      {...(invalid ? { "aria-invalid": true } : ariaInvalidProp !== undefined ? { "aria-invalid": ariaInvalidProp } : {})}
     />
   );
 }
@@ -119,7 +119,7 @@ export function Select({
   invalid,
   className,
   children,
-  "aria-invalid": _ariaInvalid,
+  "aria-invalid": ariaInvalidProp,
   "aria-describedby": ariaDescribedBy,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean }) {
@@ -134,7 +134,7 @@ export function Select({
         className,
       )}
       {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
-      {...(invalid ? { "aria-invalid": true } : {})}
+      {...(invalid ? { "aria-invalid": true } : ariaInvalidProp !== undefined ? { "aria-invalid": ariaInvalidProp } : {})}
     >
       {children}
     </select>
@@ -144,7 +144,7 @@ export function Select({
 export function Textarea({
   invalid,
   className,
-  "aria-invalid": _ariaInvalid,
+  "aria-invalid": ariaInvalidProp,
   "aria-describedby": ariaDescribedBy,
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean }) {
@@ -159,7 +159,7 @@ export function Textarea({
         className,
       )}
       {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
-      {...(invalid ? { "aria-invalid": true } : {})}
+      {...(invalid ? { "aria-invalid": true } : ariaInvalidProp !== undefined ? { "aria-invalid": ariaInvalidProp } : {})}
     />
   );
 }

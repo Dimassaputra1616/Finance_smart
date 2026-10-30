@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   IconArrowLeft,
   IconBell,
-  IconCheck,
   IconClock,
   IconMoon,
   IconReceipt,

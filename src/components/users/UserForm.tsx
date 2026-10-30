@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createUser } from "@/server/actions/users";
-import { USER_ROLES, USER_ROLE_LABELS, type ActionResult, type UserRole } from "@/lib/types";
+import { USER_ROLES, type ActionResult, type UserRole } from "@/lib/types";
 import {
   IconEye,
   IconEyeOff,
