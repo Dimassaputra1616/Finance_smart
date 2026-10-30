@@ -44,7 +44,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       // `className` dipakai lewat cx supaya konteks pemanggil (mis. sidebar
       // yang berwarna) bisa menimpa gaya dasar tanpa menduplikasi logika.
       className={cx(
-        "grid min-h-11 min-w-11 place-items-center rounded-xl border border-border bg-surface text-muted-foreground transition hover:bg-surface-hover hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "grid min-h-11 min-w-11 place-items-center rounded-xl border border-border bg-surface text-muted-foreground transition-all duration-200 hover:bg-surface-hover hover:text-foreground hover:scale-105 hover:shadow-xs hover:border-muted-foreground/40 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className,
       )}
     >

@@ -1,4 +1,4 @@
-import type { TransactionStatus } from "./types";
+import type { TransactionStatus, UserRole } from "./types";
 
 /**
  * Aturan bisnis murni seputar status transaksi dan hak modifikasi RBAC.
@@ -9,7 +9,7 @@ import type { TransactionStatus } from "./types";
 
 export type UserContext = {
   id: string;
-  role: "ADMIN" | "STAFF";
+  role: UserRole | string;
 };
 
 export type TransactionContext = {
@@ -35,14 +35,14 @@ export function isTransactionAffectingBalance(
  * Menentukan apakah pengguna berhak mengubah atau menghapus transaksi.
  *
  * Aturan:
- * - Administrator: bebas mengubah dan menghapus transaksi berstatus apa pun
+ * - Administrator & Direktur: bebas mengubah dan menghapus transaksi berstatus apa pun
  * - Staf: hanya boleh mengubah/menghapus transaksi miliknya sendiri yang masih PENDING
  */
 export function canModifyTransaction(
   user: UserContext,
   tx: TransactionContext,
 ): { allowed: boolean; reason?: string } {
-  if (user.role === "ADMIN") {
+  if (user.role === "ADMIN" || user.role === "DIRECTOR") {
     return { allowed: true };
   }
 
@@ -56,7 +56,7 @@ export function canModifyTransaction(
   if (tx.status !== "PENDING") {
     return {
       allowed: false,
-      reason: "Transaksi yang sudah disetujui hanya dapat dikelola oleh Administrator.",
+      reason: "Transaksi yang sudah disetujui hanya dapat dikelola oleh Administrator atau Direktur.",
     };
   }
 
@@ -68,18 +68,33 @@ export function canModifyTransaction(
  * pencatatan transaksi biasa: akun, kategori (termasuk pagu), transfer antar
  * akun, dan piutang.
  *
- * Hanya ADMIN. Staf hanya mengajukan transaksi, yang masih harus disetujui.
- * Kalau staf boleh membuat piutang atau transfer langsung, jalur itu
- * memintas persetujuan: uangnya langsung memotong atau memindah kas.
- * Peran yang tidak dikenal ditolak (aman secara bawaan).
+ * Wewenang diberikan kepada Administrator dan Direktur.
+ * Staf hanya mengajukan transaksi, yang masih harus disetujui.
  */
 export function canManageMasterData(role: string | null | undefined): boolean {
-  return role === "ADMIN";
+  return role === "ADMIN" || role === "DIRECTOR";
 }
 
 /**
- * Menentukan apakah pengguna berhak menyetujui atau menolak transaksi.
+ * Menentukan apakah pengguna berhak menyetujui atau menolak transaksi staf (Approver).
+ * Dipegang oleh Administrator dan Direktur.
  */
-export function canApproveTransaction(userRole: "ADMIN" | "STAFF" | string): boolean {
+export function canApproveTransaction(userRole: UserRole | string): boolean {
+  return userRole === "ADMIN" || userRole === "DIRECTOR";
+}
+
+/**
+ * Menentukan apakah pengguna berhak mengelola akun pengguna sistem (/pengguna).
+ * EKSKLUSIF hanya untuk Super Admin (ADMIN).
+ */
+export function canManageUsers(userRole: UserRole | string | null | undefined): boolean {
+  return userRole === "ADMIN";
+}
+
+/**
+ * Menentukan apakah pengguna berhak mengakses dan mengubah modul Config Master (/pengaturan).
+ * EKSKLUSIF hanya untuk Super Admin (ADMIN).
+ */
+export function canAccessConfigMaster(userRole: UserRole | string | null | undefined): boolean {
   return userRole === "ADMIN";
 }

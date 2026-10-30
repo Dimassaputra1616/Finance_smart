@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { getCurrentUser } from "@/lib/session";
-import { canManageMasterData } from "@/lib/transaction-rules";
+import { canManageMasterData, canManageUsers } from "@/lib/transaction-rules";
+import { getBrandConfig } from "@/server/brand-storage";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav } from "./MobileNav";
 import { SidebarNav } from "./SidebarNav";
 
@@ -12,7 +14,10 @@ import { SidebarNav } from "./SidebarNav";
  * beralih ke `MobileNav`.
  */
 export async function AppShell({ children }: { children: ReactNode }) {
-  const user = await getCurrentUser();
+  const [user, brand] = await Promise.all([
+    getCurrentUser(),
+    getBrandConfig(),
+  ]);
 
   return (
     // `min-h-dvh`, bukan `min-h-screen`: di HP bilah alamat browser menambah
@@ -31,10 +36,20 @@ export async function AppShell({ children }: { children: ReactNode }) {
         Lompat ke konten utama
       </a>
 
-      <MobileNav canManage={canManageMasterData(user?.role)} />
+      <MobileNav
+        user={user}
+        canManage={canManageMasterData(user?.role)}
+        canManageUsers={canManageUsers(user?.role)}
+        brand={brand}
+      />
 
       {/* Sidebar desktop */}
-      <SidebarNav user={user} />
+      <SidebarNav user={user} brand={brand} />
+
+      {/* Tombol Pengalih Tema Melayang (Floating Glass Theme Toggle) di Layar Komputer */}
+      <div className="fixed bottom-6 right-6 z-40 hidden lg:block">
+        <ThemeToggle className="h-11 w-11 rounded-2xl border border-border/80 bg-surface/85 shadow-lg shadow-black/5 backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:border-primary/40 hover:shadow-xl active:scale-95" />
+      </div>
 
       {/*
         `tabIndex={-1}` supaya skip link benar-benar memindahkan fokus ke sini,

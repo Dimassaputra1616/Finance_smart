@@ -10,11 +10,12 @@
 export const TRANSACTION_KINDS = ["INCOME", "EXPENSE"] as const;
 export type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 
-export const USER_ROLES = ["ADMIN", "STAFF"] as const;
+export const USER_ROLES = ["ADMIN", "DIRECTOR", "STAFF"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: "Administrator",
+  ADMIN: "Super Admin",
+  DIRECTOR: "Direktur",
   STAFF: "Staf",
 };
 

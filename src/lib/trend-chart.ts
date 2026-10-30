@@ -81,7 +81,7 @@ export function calculateTrendLayout(
 
   const rawMax = Math.max(
     ...points.map((p) => Math.max(p.income, p.expense)),
-    1,
+    0,
   );
   const maxValue = calculateCleanCeiling(rawMax);
 

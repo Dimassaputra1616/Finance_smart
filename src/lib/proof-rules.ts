@@ -14,18 +14,20 @@
 /** Batas ukuran bukti. Foto nota hasil kompresi klien biasanya ~200 KB. */
 export const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 
-export type ProofType = "webp" | "jpeg" | "png";
+export type ProofType = "webp" | "jpeg" | "png" | "heic";
 
 const EXTENSIONS: Record<ProofType, string> = {
   webp: "webp",
   jpeg: "jpg",
   png: "png",
+  heic: "heic",
 };
 
 const CONTENT_TYPES: Record<string, string> = {
   webp: "image/webp",
   jpg: "image/jpeg",
   png: "image/png",
+  heic: "image/heic",
 };
 
 function hasBytes(bytes: Uint8Array, signature: number[], offset = 0): boolean {
@@ -33,7 +35,29 @@ function hasBytes(bytes: Uint8Array, signature: number[], offset = 0): boolean {
   return signature.every((value, index) => bytes[offset + index] === value);
 }
 
-/** Mengenali JPEG, PNG, dan WebP dari byte awalnya. Selain itu `null`. */
+const HEIC_BRANDS = ["heic", "heix", "hevc", "hevx", "mif1", "msf1"];
+
+/** Mengenali berkas foto HEIC/HEIF (kamera iPhone) dari box ISOBMFF 'ftyp'. */
+export function isHeicBytes(bytes: Uint8Array): boolean {
+  if (bytes.length < 12) return false;
+  // Box type harus 'ftyp' di offset 4 ('f' 't' 'y' 'p' = 0x66 0x74 0x79 0x70)
+  if (!hasBytes(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return false;
+
+  // Cek major brand di offset 8
+  const majorBrand = String.fromCharCode(...bytes.slice(8, 12)).toLowerCase();
+  if (HEIC_BRANDS.includes(majorBrand)) return true;
+
+  // Cek compatible brands dari offset 16 (maksimal 64 byte awal)
+  const maxOffset = Math.min(bytes.length, 64);
+  for (let offset = 16; offset + 4 <= maxOffset; offset += 4) {
+    const brand = String.fromCharCode(...bytes.slice(offset, offset + 4)).toLowerCase();
+    if (HEIC_BRANDS.includes(brand)) return true;
+  }
+
+  return false;
+}
+
+/** Mengenali JPEG, PNG, WebP, dan HEIC dari byte awalnya. Selain itu `null`. */
 export function detectProofType(bytes: Uint8Array): ProofType | null {
   if (hasBytes(bytes, [0xff, 0xd8, 0xff])) return "jpeg";
   if (hasBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "png";
@@ -44,6 +68,7 @@ export function detectProofType(bytes: Uint8Array): ProofType | null {
   ) {
     return "webp";
   }
+  if (isHeicBytes(bytes)) return "heic";
   return null;
 }
 
@@ -65,7 +90,7 @@ export function checkProofFile(bytes: Uint8Array): ProofCheck {
   if (!type) {
     return {
       ok: false,
-      message: "Bukti harus berupa gambar JPEG, PNG, atau WebP.",
+      message: "Bukti harus berupa gambar JPEG, PNG, WebP, atau HEIC.",
     };
   }
 
@@ -74,7 +99,7 @@ export function checkProofFile(bytes: Uint8Array): ProofCheck {
 
 // Nama berkas yang dibuat server: proof_<epoch ms>_<acak>.<ekstensi>.
 // Pola ketat inilah yang mencegah path traversal saat berkas dibaca kembali.
-const SAFE_NAME = /^proof_\d{10,16}_[a-z0-9]{6,16}\.(webp|jpg|png)$/;
+const SAFE_NAME = /^proof_\d{10,16}_[a-z0-9]{6,16}\.(webp|jpg|png|heic)$/;
 
 export function isSafeProofFileName(name: string): boolean {
   return SAFE_NAME.test(name);

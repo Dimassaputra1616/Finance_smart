@@ -32,20 +32,15 @@ export async function requireUser(): Promise<SessionUser> {
 /**
  * Penjaga untuk Server Action data induk (akun, kategori, transfer, piutang).
  *
- * Mengembalikan `ActionResult` galat bila pengguna bukan ADMIN, atau `null`
- * bila boleh lanjut. Dipakai di awal aksi: `const denied = await adminGuard();
- * if (denied) return denied;`. Berbeda dengan `requireAdmin()` yang melempar
- * exception, di sini galat dikembalikan supaya tampil inline di form lewat
- * `useActionState`. Pengguna anonim juga ditolak (peran tidak dikenal).
- *
- * Aturannya ada di `canManageMasterData()` agar bisa diuji tanpa cookie.
+ * Mengembalikan `ActionResult` galat bila pengguna bukan ADMIN atau DIRECTOR, atau `null`
+ * bila boleh lanjut.
  */
 export async function adminGuard(): Promise<ActionResult | null> {
   const user = await getCurrentUser();
 
   if (!canManageMasterData(user?.role)) {
     return actionError(
-      "Akses ditolak: hanya Administrator yang dapat mengubah data ini.",
+      "Akses ditolak: hanya Administrator atau Direktur yang dapat mengubah data ini.",
     );
   }
 
@@ -53,20 +48,43 @@ export async function adminGuard(): Promise<ActionResult | null> {
 }
 
 /**
- * Apakah sesi saat ini boleh mengelola data induk (akun, kategori, transfer,
- * piutang). Dipakai halaman server untuk menolak staf yang membuka URL-nya
- * langsung, sebagai pasangan `adminGuard()` yang menjaga Server Action.
+ * Penjaga khusus pengelolaan pengguna (/pengguna) — EKSKLUSIF Super Admin.
+ */
+export async function superAdminGuard(): Promise<ActionResult | null> {
+  const user = await getCurrentUser();
+
+  if (user?.role !== "ADMIN") {
+    return actionError(
+      "Akses ditolak: hanya Super Admin yang berwenang mengelola akun pengguna.",
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Apakah sesi saat ini boleh mengelola data induk (akun, kategori, transfer, piutang).
+ * Berlaku untuk Super Admin dan Direktur.
  */
 export async function isAdminSession(): Promise<boolean> {
   const user = await getCurrentUser();
   return canManageMasterData(user?.role);
 }
 
+/**
+ * Apakah sesi saat ini adalah Super Admin (ADMIN).
+ * Digunakan untuk halaman manajemen pengguna (/pengguna).
+ */
+export async function isSuperAdminSession(): Promise<boolean> {
+  const user = await getCurrentUser();
+  return user?.role === "ADMIN";
+}
+
 /** Pastikan pengguna memiliki peran Administrator (Approver). */
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== "ADMIN") {
-    throw new Error("Akses ditolak: Memerlukan wewenang Administrator.");
+  if (user.role !== "ADMIN" && user.role !== "DIRECTOR") {
+    throw new Error("Akses ditolak: Memerlukan wewenang Administrator atau Direktur.");
   }
   return user;
 }

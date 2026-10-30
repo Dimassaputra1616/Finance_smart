@@ -1,8 +1,15 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { hasStoredAccount } from "@/server/queries/users";
+import { canAccessConfigMaster } from "@/lib/transaction-rules";
+import { USER_ROLE_LABELS } from "@/lib/types";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
-import { Alert, Card, CardHeader } from "@/components/ui";
+import { AvatarUploadSection } from "@/components/profile/AvatarUploadSection";
+import { DeviceNotificationCard } from "@/components/notifications/DeviceNotificationCard";
+import { InstallPwaCard } from "@/components/pwa/InstallPwaCard";
+import { Alert, buttonStyles, Card, CardHeader } from "@/components/ui";
+import { IconSparkle } from "@/components/Icons";
 
 export const metadata = { title: "Profil" };
 
@@ -14,6 +21,7 @@ export default async function ProfilePage() {
   if (!user) redirect("/login");
 
   const stored = await hasStoredAccount(user.id);
+  const canManageBrand = canAccessConfigMaster(user.role);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
@@ -25,6 +33,36 @@ export default async function ProfilePage() {
           Profil &amp; keamanan
         </h1>
       </header>
+
+      {/* Akses Cepat Config Master untuk Super Admin */}
+      {canManageBrand && (
+        <Card padded className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sidebar-brand-from/15 text-sidebar-brand-foreground">
+              <IconSparkle className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-foreground">
+                Config Master &amp; Identitas Brand
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Kustomisasi logo perusahaan, nama sistem, profil badan usaha, dan preferensi keuangan.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/pengaturan"
+            className={buttonStyles({ variant: "secondary", size: "sm" })}
+          >
+            Buka Config Master
+          </Link>
+        </Card>
+      )}
+
+      {/* Kartu Kelola Foto Profil */}
+      <Card padded>
+        <AvatarUploadSection userId={user.id} name={user.name} />
+      </Card>
 
       <Card padded>
         <dl className="grid gap-4 sm:grid-cols-3">
@@ -41,13 +79,19 @@ export default async function ProfilePage() {
             </dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-xs text-subtle-foreground">Peran</dt>
-            <dd className="mt-1 text-sm font-medium text-foreground">
-              {user.role === "ADMIN" ? "Administrator (Approver)" : "Staf"}
+            <dt className="text-xs text-subtle-foreground">Peran otorisasi</dt>
+            <dd className="mt-1 text-sm font-semibold text-foreground">
+              {USER_ROLE_LABELS[user.role] ?? user.role}
             </dd>
           </div>
         </dl>
       </Card>
+
+      {/* Kartu Pengaturan Notifikasi Perangkat HP & Web Push */}
+      <DeviceNotificationCard />
+
+      {/* Kartu Panduan Pasang PWA ke Layar Utama HP */}
+      <InstallPwaCard />
 
       <Card>
         <CardHeader

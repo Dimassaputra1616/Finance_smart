@@ -84,9 +84,55 @@ export function TransactionForm({
   const [enteredAmount, setEnteredAmount] = useState<number | null>(
     transaction?.amount ?? null,
   );
+  const [dateValue, setDateValue] = useState<string>(
+    transaction
+      ? toDateInputValue(new Date(transaction.occurredAt))
+      : getTodayInputValue(),
+  );
+  const [descriptionValue, setDescriptionValue] = useState<string>(
+    transaction?.description ?? "",
+  );
   const [selectedAccountId, setSelectedAccountId] = useState<string>(
     transaction?.accountId ?? "",
   );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
+    transaction?.categoryId ?? "",
+  );
+  const [aiSuccessBadge, setAiSuccessBadge] = useState<string | null>(null);
+
+  const handleScanSuccess = (data: {
+    amount?: number;
+    date?: string;
+    description?: string;
+    categoryId?: string | null;
+    accountId?: string | null;
+  }) => {
+    if (data.amount && data.amount > 0) {
+      setEnteredAmount(data.amount);
+    }
+    if (data.date) {
+      setDateValue(data.date);
+    }
+    if (data.description) {
+      setDescriptionValue(data.description);
+    }
+    if (data.categoryId) {
+      const matched = categories.find((c) => c.id === data.categoryId);
+      if (matched) {
+        if (matched.kind !== kind) {
+          setKind(matched.kind);
+        }
+        setSelectedCategoryId(matched.id);
+      }
+    }
+    if (data.accountId) {
+      const matchedAcc = accounts.find((a) => a.id === data.accountId);
+      if (matchedAcc) {
+        setSelectedAccountId(matchedAcc.id);
+      }
+    }
+    setAiSuccessBadge("✨ Data struk berhasil diekstrak otomatis oleh AI! Silakan periksa nilai di bawah.");
+  };
 
   const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
   const balanceCheck =
@@ -131,6 +177,13 @@ export function TransactionForm({
         >
           {result.message}
         </Alert>
+      ) : null}
+
+      {aiSuccessBadge ? (
+        <div className="flex items-center gap-2 rounded-2xl border border-income/30 bg-income-soft/40 px-4 py-3 text-xs font-semibold text-income shadow-xs animate-fade-in">
+          <span className="h-2 w-2 rounded-full bg-income animate-pulse" />
+          <span>{aiSuccessBadge}</span>
+        </div>
       ) : null}
 
       <fieldset>
@@ -210,7 +263,7 @@ export function TransactionForm({
         >
           <CurrencyInput
             name="amount"
-            defaultValue={transaction?.amount}
+            value={enteredAmount}
             invalid={Boolean(errors?.amount)}
             onValueChange={setEnteredAmount}
           />
@@ -221,11 +274,8 @@ export function TransactionForm({
             id="date"
             name="date"
             type="date"
-            defaultValue={
-              transaction
-                ? toDateInputValue(new Date(transaction.occurredAt))
-                : getTodayInputValue()
-            }
+            value={dateValue}
+            onChange={(e) => setDateValue(e.target.value)}
             invalid={Boolean(errors?.date)}
             required
           />
@@ -242,7 +292,8 @@ export function TransactionForm({
           id="description"
           name="description"
           placeholder="Contoh: Beli makan siang"
-          defaultValue={transaction?.description}
+          value={descriptionValue}
+          onChange={(e) => setDescriptionValue(e.target.value)}
           invalid={Boolean(errors?.description)}
           maxLength={120}
           required
@@ -307,8 +358,8 @@ export function TransactionForm({
           <Select
             id="categoryId"
             name="categoryId"
-            key={kind}
-            defaultValue={transaction?.categoryId ?? ""}
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
             invalid={Boolean(errors?.categoryId)}
             required
           >
@@ -330,7 +381,7 @@ export function TransactionForm({
         errors={errors?.proof}
         hint="Foto struk kamera HP otomatis dikompres ~200 KB (teks tetap tajam)."
       >
-        <ProofUpload />
+        <ProofUpload onScanSuccess={handleScanSuccess} />
       </FormField>
 
       <FormField label="Catatan" htmlFor="notes" errors={errors?.notes}>

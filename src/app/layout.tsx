@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { APP_NAME } from "@/lib/brand";
+import { getBrandConfig } from "@/server/brand-storage";
 import { VAULT_INIT_SCRIPT } from "@/lib/vault-gate";
 import "./globals.css";
 
@@ -23,23 +24,37 @@ export const viewport: Viewport = {
   ],
 };
 
-export const metadata: Metadata = {
-  // `template` membuat tiap halaman cukup menulis judulnya sendiri
-  // (mis. "Piutang") dan tab menampilkan "Piutang · Perbendaharaan & Kas".
-  title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
-  description:
-    "Sistem pengendalian keuangan internal: transaksi, pos anggaran, rekening operasional, dan persetujuan pengeluaran.",
-  applicationName: APP_NAME,
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Keuangan",
-  },
-  formatDetection: {
-    telephone: false,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrandConfig();
+  const name = brand.appName || APP_NAME;
+
+  return {
+    // `template` membuat tiap halaman cukup menulis judulnya sendiri
+    // (mis. "Piutang") dan tab menampilkan "Piutang · PT Contoh".
+    title: { default: name, template: `%s · ${name}` },
+    description:
+      brand.appTagline ||
+      "Sistem pengendalian keuangan internal: transaksi, pos anggaran, rekening operasional, dan persetujuan pengeluaran.",
+    applicationName: name,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: brand.shortName || "Keuangan",
+    },
+    ...(brand.hasCustomLogo
+      ? {
+          icons: {
+            icon: `/api/brand/logo?v=${brand.logoVersion ?? 1}`,
+            apple: `/api/brand/logo?v=${brand.logoVersion ?? 1}`,
+          },
+        }
+      : {}),
+    formatDetection: {
+      telephone: false,
+    },
+  };
+}
 
 /**
  * Skrip anti-kedip. Harus berjalan SEBELUM React meng-hydrate dan sebelum

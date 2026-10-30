@@ -10,8 +10,10 @@ import {
   IconClose,
   IconReceipt,
   IconCategory,
+  IconSliders,
 } from "@/components/Icons";
 import { compressImageToWebP } from "@/lib/image-compress";
+import { setPendingProof } from "@/lib/proof-transfer";
 import { CameraViewfinder } from "./CameraViewfinder";
 
 /**
@@ -24,7 +26,13 @@ import { CameraViewfinder } from "./CameraViewfinder";
  * 4. Foto yang dipilih langsung dikompres ke WebP dan diteruskan otomatis
  *    ke halaman `/transaksi/baru`.
  */
-export function MobileActionSheet({ canManage }: { canManage: boolean }) {
+export function MobileActionSheet({
+  canManage,
+  canManageUsers = false,
+}: {
+  canManage: boolean;
+  canManageUsers?: boolean;
+}) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -52,39 +60,30 @@ export function MobileActionSheet({ canManage }: { canManage: boolean }) {
     setIsProcessing(true);
     try {
       const compressed = await compressImageToWebP(file, 1600, 0.8);
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        const base64Data = e.target?.result as string;
-        try {
-          sessionStorage.setItem("pending_proof_data", base64Data);
-          sessionStorage.setItem("pending_proof_name", compressed.name);
-          sessionStorage.setItem(
-            "pending_proof_meta",
-            JSON.stringify({
-              originalSize: file.size,
-              compressedSize: compressed.size,
-            }),
-          );
-        } catch {
-          // Abaikan jika quota sessionStorage penuh
-        }
-        setIsOpen(false);
-        setIsProcessing(false);
-        router.push("/transaksi/baru");
+      const meta = {
+        originalSize: file.size,
+        compressedSize: compressed.size,
       };
 
-      reader.onerror = () => {
-        setIsProcessing(false);
-        setIsOpen(false);
-        router.push("/transaksi/baru");
-      };
-
-      reader.readAsDataURL(compressed);
-    } catch {
-      setIsProcessing(false);
+      setPendingProof(compressed, meta);
       setIsOpen(false);
-      router.push("/transaksi/baru");
+      setIsProcessing(false);
+
+      if (window.location.pathname !== "/transaksi/baru") {
+        router.push("/transaksi/baru");
+      }
+    } catch {
+      // Fallback: teruskan file asli jika kompresi gagal
+      setPendingProof(file, {
+        originalSize: file.size,
+        compressedSize: file.size,
+      });
+      setIsOpen(false);
+      setIsProcessing(false);
+
+      if (window.location.pathname !== "/transaksi/baru") {
+        router.push("/transaksi/baru");
+      }
     }
   };
 
@@ -104,7 +103,7 @@ export function MobileActionSheet({ canManage }: { canManage: boolean }) {
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         capture="environment"
         onChange={onCameraChange}
         className="sr-only"
@@ -113,7 +112,7 @@ export function MobileActionSheet({ canManage }: { canManage: boolean }) {
       <input
         ref={galleryInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         onChange={onGalleryChange}
         className="sr-only"
         tabIndex={-1}
@@ -126,7 +125,7 @@ export function MobileActionSheet({ canManage }: { canManage: boolean }) {
           onClick={() => setIsOpen(true)}
           title="Catat Bukti Transaksi"
           aria-label="Buka kamera atau input transaksi"
-          className="group relative flex h-13 w-13 cursor-pointer items-center justify-center rounded-2xl bg-[#142d22] text-[#f7f5ed] shadow-lg shadow-black/25 ring-4 ring-surface transition-all duration-200 hover:scale-105 active:scale-90 dark:bg-[#e8c77b] dark:text-[#060e0a] dark:ring-[#0c1813] dark:shadow-black/60"
+          className="group relative flex h-13 w-13 cursor-pointer items-center justify-center rounded-2xl bg-sidebar-brand-from text-sidebar-brand-foreground shadow-lg shadow-black/20 ring-4 ring-surface transition-all duration-200 hover:scale-105 active:scale-90"
         >
           <IconCamera className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
           <span className="sr-only">Foto Bukti Nota</span>
@@ -189,7 +188,7 @@ export function MobileActionSheet({ canManage }: { canManage: boolean }) {
                 }}
                 className="group flex w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-border/80 bg-surface-muted/40 p-3.5 text-left transition hover:border-primary/40 hover:bg-surface-muted active:scale-[0.98]"
               >
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#142d22] text-[#f7f5ed] shadow-xs group-hover:scale-105 transition dark:bg-[#e8c77b] dark:text-[#060e0a]">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sidebar-brand-from text-sidebar-brand-foreground shadow-xs group-hover:scale-105 transition">
                   <IconCamera className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -248,30 +247,34 @@ export function MobileActionSheet({ canManage }: { canManage: boolean }) {
 
             {/* Navigasi Cepat Tambahan untuk Mobile (khusus Administrator) */}
             {canManage ? (
-            <div className="mt-3.5 pt-3 border-t border-border/60 flex items-center justify-between text-xs">
-              <button
-                type="button"
-                disabled={isProcessing}
-                onClick={() => {
-                  setIsOpen(false);
-                  router.push("/kategori");
-                }}
-                className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition cursor-pointer min-h-11 py-1"
-              >
-                <IconCategory className="h-4 w-4" />
-                <span>Kelola Pos Anggaran</span>
-              </button>
-              <button
-                type="button"
-                disabled={isProcessing}
-                onClick={() => {
-                  setIsOpen(false);
-                  router.push("/transaksi/transfer");
-                }}
-                className="text-primary hover:underline transition cursor-pointer min-h-11 py-1 font-medium"
-              >
-                Pindah Buku Antar Rekening →
-              </button>
+            <div className="mt-3.5 pt-3 border-t border-border/60 flex flex-col gap-1 text-xs">
+              <div className="flex items-center justify-between">
+                {canManageUsers ? (
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => {
+                      setIsOpen(false);
+                      router.push("/pengaturan");
+                    }}
+                    className="flex items-center gap-1.5 text-primary font-semibold hover:underline transition cursor-pointer min-h-11 py-1"
+                  >
+                    <IconSliders className="h-4 w-4" />
+                    <span>Buka Config Master</span>
+                  </button>
+                ) : <div />}
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => {
+                    setIsOpen(false);
+                    router.push("/transaksi/transfer");
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition cursor-pointer min-h-11 py-1 font-medium"
+                >
+                  Pindah Buku Rekening →
+                </button>
+              </div>
             </div>
             ) : null}
 

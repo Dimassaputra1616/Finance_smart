@@ -1,20 +1,15 @@
 import type { ReactNode } from "react";
 import { IconInbox } from "@/components/Icons";
-import { TheTreasurer } from "@/components/illustrations/TheTreasurer";
 import { cx } from "./Card";
 
 /**
  * Keadaan kosong, misalnya bulan tanpa transaksi.
- *
- * Mendukung opsi `withCharacter` untuk menampilkan karakter bendahara digital
- * yang hidup dan ramah, menggantikan kotak abu-abu polos biasa.
  */
 export function EmptyState({
   title,
   description,
   action,
   compact = false,
-  withCharacter = false,
 }: {
   title: string;
   description?: string;
@@ -29,13 +24,9 @@ export function EmptyState({
         compact ? "gap-1.5 px-5 py-7" : "gap-2 px-5 py-12",
       )}
     >
-      {withCharacter ? (
-        <TheTreasurer size="sm" className="mb-1" />
-      ) : (
-        <span className="mb-1 grid h-12 w-12 place-items-center rounded-2xl bg-surface-muted text-muted-foreground">
-          <IconInbox className="h-6 w-6" />
-        </span>
-      )}
+      <span className="mb-1 grid h-12 w-12 place-items-center rounded-2xl bg-surface-muted text-muted-foreground">
+        <IconInbox className="h-6 w-6" />
+      </span>
       <p className="text-sm font-semibold text-foreground">{title}</p>
       {description ? (
         <p className="max-w-sm text-xs sm:text-sm text-muted-foreground">{description}</p>

@@ -5,60 +5,91 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { LoginShowcase } from "@/components/auth/LoginShowcase";
 import { VaultGate } from "@/components/auth/VaultGate";
 import { APP_NAME } from "@/lib/brand";
+import { getBrandLogoUrl } from "@/lib/brand-config";
+import { getBrandConfig } from "@/server/brand-storage";
 
 // Judul tab menjadi "Masuk · Perbendaharaan & Kas" lewat template di root layout.
-export const metadata: Metadata = { title: "Masuk" };
+export const metadata: Metadata = { title: "Masuk ke Konsol" };
 
 /**
- * Halaman masuk.
+ * Halaman masuk: Terbuka, bersih, proporsional, dan bernuansa enterprise.
  *
- * Server Component. Hanya formulirnya (`LoginForm`), gerbang pembuka
- * (`VaultGate`), dan pengalih tema yang client; sisanya markup statis. Seluruh
- * warna memakai token semantik, jadi mode gelap ikut berubah dari satu tempat.
- *
- * Tidak boleh ada scroll. Di layar lebar (`lg`) tingginya dikunci tepat setinggi
- * layar dan setiap kolom mengatur isinya sendiri. Di ponsel tingginya hanya
- * MINIMAL setinggi layar, tidak dikunci: saat keyboard layar terbuka, area yang
- * terlihat menyusut dan halaman harus tetap bisa digulir supaya tombol Masuk
- * terjangkau (termasuk pada zoom 200%).
+ * Di desktop (lg), tinggi dikunci tepat setinggi layar (h-dvh) dan TIDAK BOLEH scroll.
+ * Padding vertikal diselaraskan presisi dengan panel kiri agar garis pembatas
+ * dan teks footer berada di satu garis lurus horizontal sempurna (100% pixel alignment).
  */
-export default function LoginPage() {
+export default async function LoginPage() {
+  const brand = await getBrandConfig();
+  const appName = brand.appName ?? APP_NAME;
+  const logoUrl = getBrandLogoUrl(brand);
+
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background text-foreground lg:h-dvh">
-      <VaultGate />
+      <VaultGate brand={brand} />
 
       <div className="animate-vault-reveal flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
-        <LoginShowcase />
+        <LoginShowcase brand={brand} />
 
-        {/* `lg:overflow-y-auto` hanya jaring pengaman: kolom formulir pendek,
-            jadi di keadaan normal tidak pernah menggulir. Tanpanya, zoom besar
-            akan memotong tombol Masuk alih-alih menampilkan scroll. */}
-        <main className="relative flex flex-1 flex-col bg-surface px-6 py-5 sm:px-10 lg:overflow-y-auto lg:px-16">
-          <div className="flex items-center justify-between gap-3">
-            {/* Panel kiri menyembunyikan mereknya di layar kecil, jadi ditaruh di sini. */}
+        <main className="relative flex flex-1 flex-col justify-between overflow-hidden bg-surface px-6 py-6 text-foreground sm:px-10 lg:px-10 lg:py-7 xl:px-14 xl:py-8 2xl:px-20">
+          {/* Subtle Ambient Depth di Latar */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-16 -right-16 h-72 w-72 rounded-full bg-sidebar-brand-from/10 blur-3xl transform-gpu"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-16 -left-16 h-72 w-72 rounded-full bg-primary/8 blur-3xl transform-gpu"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-[0.02]"
+            style={{
+              backgroundImage: "radial-gradient(currentColor 1.2px, transparent 1.2px)",
+              backgroundSize: "24px 24px",
+            }}
+          />
+
+          {/* Header Mobile & Pengalih Tema (Tinggi persis setara h-11) */}
+          <div className="relative z-10 flex h-11 items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 lg:hidden">
-              <BrandMark className="h-9 w-9 text-xs" />
-              <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
+              <BrandMark
+                logoUrl={logoUrl}
+                hasCustomLogo={brand.hasCustomLogo}
+                shape={brand.logoShape}
+                className="h-9 w-9 text-xs"
+              />
+              <span className="text-sm font-semibold tracking-tight text-foreground">
+                {appName}
+              </span>
             </div>
             <div className="ml-auto">
               <ThemeToggle />
             </div>
           </div>
 
-          <div className="mx-auto my-auto w-full max-w-sm py-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Masuk</h1>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Gunakan akun yang diberikan administrator.
-            </p>
-
-            <div className="mt-6">
-              <LoginForm />
+          {/* Area Formulir Masuk: Rapi, Terbuka, Enterprise, Tanpa Scroll */}
+          <div className="relative z-10 mx-auto my-auto w-full max-w-sm sm:max-w-md xl:max-w-md 2xl:max-w-lg py-2">
+            <div className="mb-5 space-y-1.5 text-left">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-muted/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-income animate-pulse" />
+                <span>Otentikasi Internal</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl xl:text-4xl">
+                Masuk ke Konsol
+              </h1>
+              <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm xl:text-base">
+                Akses konsol pengendalian perbendaharaan dan otorisasi anggaran.
+              </p>
             </div>
+
+            <LoginForm />
           </div>
 
-          <p className="border-t border-border pt-3 text-xs text-subtle-foreground">
-            Hanya untuk pengguna yang diberi akses.
-          </p>
+          {/* Footer Bawah (Presisi Sejajar Horisontal dengan Panel Kiri) */}
+          <div className="relative z-10 flex h-6 items-center justify-between border-t border-border pt-3.5 text-[11px] text-subtle-foreground">
+            <span className="font-medium">Sistem Informasi Perbendaharaan</span>
+            <span className="font-mono">Sesi Terenkripsi</span>
+          </div>
         </main>
       </div>
     </div>

@@ -2,7 +2,13 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { login } from "@/server/actions/auth";
-import { IconAlert, IconEye, IconEyeOff } from "@/components/Icons";
+import {
+  IconAlert,
+  IconEye,
+  IconEyeOff,
+  IconMail,
+  IconShield,
+} from "@/components/Icons";
 import { Button, Input } from "@/components/ui";
 import type { ActionResult } from "@/lib/types";
 
@@ -10,30 +16,34 @@ const INITIAL_STATE: ActionResult = { ok: true };
 const ERROR_ID = "login-error";
 
 /**
- * Formulir masuk. Logika autentikasinya ada di Server Action `login`; komponen
- * ini hanya mengurus tampilan dan aksesibilitas.
- *
- * Tanpa placeholder: label sudah terlihat, dan placeholder abu-abu pucat
- * sebelumnya hanya 1,8:1 kontrasnya di mode terang.
+ * Formulir masuk konsol perbendaharaan enterprise.
+ * Menggunakan kredensial email resmi perusahaan dan kata sandi akun terdaftar.
  */
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(login, INITIAL_STATE);
-  const [username, setUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const errorMessage = !state.ok ? state.message : undefined;
   const describedBy = errorMessage ? ERROR_ID : undefined;
 
-  // React mengosongkan kolom yang tidak dikontrol setelah aksi selesai, jadi
-  // kata sandi memang hilang saat gagal (disengaja) sementara nama pengguna
-  // dipertahankan lewat state. Fokus dikembalikan ke kata sandi supaya pengguna
-  // bisa langsung mengetik ulang.
   useEffect(() => {
-    if (errorMessage) document.getElementById("password")?.focus();
+    document.getElementById("email")?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (errorMessage) {
+      const passwordInput = document.getElementById("password") as HTMLInputElement | null;
+      if (passwordInput) passwordInput.value = "";
+      document.getElementById("password")?.focus();
+    }
   }, [state, errorMessage]);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      suppressHydrationWarning
+      action={formAction}
+      className="space-y-4"
+    >
       {errorMessage ? (
         <p
           id={ERROR_ID}
@@ -46,52 +56,63 @@ export function LoginForm() {
       ) : null}
 
       <div className="space-y-1.5">
-        <label htmlFor="username" className="block text-sm font-medium text-foreground">
-          Nama pengguna
+        <label htmlFor="email" className="block text-sm font-medium text-foreground">
+          Email perusahaan
         </label>
-        <Input
-          id="username"
-          name="username"
-          type="text"
-          autoComplete="username"
-          autoCapitalize="none"
-          spellCheck={false}
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-          // `readOnly`, bukan `disabled`: kolom yang dinonaktifkan kehilangan
-          // fokus, dan nilainya tidak terkirim kalau statusnya berubah sebelum
-          // formulir dibaca.
-          readOnly={isPending}
-          invalid={Boolean(errorMessage)}
-          aria-describedby={describedBy}
-          required
-        />
+        <div className="relative group">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-3.5 z-10 flex items-center text-muted-foreground transition-colors duration-200 group-focus-within:text-primary group-hover:text-foreground"
+          >
+            <IconMail className="h-4 w-4" />
+          </span>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="nama@perusahaan.com"
+            readOnly={isPending}
+            invalid={Boolean(errorMessage)}
+            {...(describedBy ? { "aria-describedby": describedBy } : {})}
+            className="pl-10"
+            required
+          />
+        </div>
       </div>
 
       <div className="space-y-1.5">
         <label htmlFor="password" className="block text-sm font-medium text-foreground">
           Kata sandi
         </label>
-        <div className="relative">
+        <div className="relative group">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-3.5 z-10 flex items-center text-muted-foreground transition-colors duration-200 group-focus-within:text-primary group-hover:text-foreground"
+          >
+            <IconShield className="h-4 w-4" />
+          </span>
           <Input
             id="password"
             name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
+            placeholder="Masukkan kata sandi akun…"
             readOnly={isPending}
             invalid={Boolean(errorMessage)}
-            aria-describedby={describedBy}
-            className="pr-12"
+            {...(describedBy ? { "aria-describedby": describedBy } : {})}
+            className="pl-10 pr-12"
             required
           />
-          {/* Label tetap, keadaannya lewat `aria-pressed`. Kalau label ikut
-              berganti, pembaca layar mengumumkan dua hal yang saling bertentangan. */}
+          {/* Tombol sakelar visibilitas kata sandi */}
           <button
             type="button"
             onClick={() => setShowPassword((value) => !value)}
             aria-label="Tampilkan kata sandi"
             aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-xl text-muted-foreground transition hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-xl text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
           >
             {showPassword ? (
               <IconEyeOff className="h-4 w-4" />
@@ -102,12 +123,43 @@ export function LoginForm() {
         </div>
       </div>
 
-      <Button type="submit" size="lg" disabled={isPending} className="w-full">
-        {isPending ? "Memverifikasi…" : "Masuk"}
+      <div className="flex items-center justify-between text-xs pt-0.5">
+        <label className="group flex items-center gap-2 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors duration-200">
+          <input
+            suppressHydrationWarning
+            type="checkbox"
+            name="rememberMe"
+            defaultChecked
+            disabled={isPending}
+            className="h-4 w-4 rounded border-border text-primary focus:ring-ring cursor-pointer accent-primary transition-transform duration-150 group-hover:scale-110"
+          />
+          <span className="transition-colors duration-150 group-hover:text-foreground">
+            Ingat sesi masuk di perangkat ini
+          </span>
+        </label>
+      </div>
+
+      <Button
+        type="submit"
+        size="lg"
+        disabled={isPending}
+        className="w-full flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/20 active:translate-y-0 active:scale-[0.99]"
+      >
+        {isPending ? (
+          <>
+            <span
+              aria-hidden="true"
+              className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent shrink-0"
+            />
+            <span>Memverifikasi Otoritas…</span>
+          </>
+        ) : (
+          <span>Masuk ke Konsol</span>
+        )}
       </Button>
 
-      <p className="text-center text-xs text-subtle-foreground">
-        Lupa kata sandi? Hubungi administrator.
+      <p className="text-center text-xs text-subtle-foreground transition-colors duration-200 hover:text-foreground">
+        Kendala autentikasi? Hubungi Administrator TI.
       </p>
     </form>
   );

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { APP_NAME } from "@/lib/brand";
+import { getBrandConfig } from "@/server/brand-storage";
 
 /**
  * Web App Manifest untuk mode PWA (Progressive Web App).
@@ -7,10 +8,15 @@ import { APP_NAME } from "@/lib/brand";
  * Mengizinkan aplikasi di-install di layar utama ponsel (iOS Safari & Android Chrome)
  * sebagai aplikasi mandiri (standalone), dengan bilah status bernada perbendaharaan.
  */
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const brand = await getBrandConfig();
+  const iconPath = brand.hasCustomLogo
+    ? `/api/brand/logo?v=${brand.logoVersion ?? 1}`
+    : "/icon";
+
   return {
-    name: APP_NAME,
-    short_name: "Keuangan",
+    name: brand.appName || APP_NAME,
+    short_name: brand.shortName || "Keuangan",
     description: "Sistem pencatatan mutasi kas, persetujuan pengeluaran staf, dan rekonsiliasi likuiditas.",
     start_url: "/",
     display: "standalone",
@@ -21,25 +27,25 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "id",
     icons: [
       {
-        src: "/icon",
+        src: iconPath,
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon",
+        src: iconPath,
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon.svg",
+        src: iconPath,
         sizes: "any",
         type: "image/svg+xml",
         purpose: "any",
       },
       {
-        src: "/icon.svg",
+        src: iconPath,
         sizes: "512x512",
         type: "image/svg+xml",
         purpose: "maskable",

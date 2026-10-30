@@ -5,3 +5,4 @@ export * from "./Alert";
 export * from "./Feedback";
 export * from "./ConfirmDialog";
 export * from "./ConfirmSubmitButton";
+export * from "./PageSkeleton";

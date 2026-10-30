@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { changePassword } from "@/server/actions/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/password-rules";
+import { IconEye, IconEyeOff } from "@/components/Icons";
 import type { ActionResult } from "@/lib/types";
 import {
   Alert,
@@ -20,9 +21,18 @@ export function ChangePasswordForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const errors = result.ok ? undefined : result.errors;
 
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   // Setelah berhasil, kosongkan kolom supaya kata sandi tidak tertinggal di layar.
   useEffect(() => {
-    if (result.ok && result.message) formRef.current?.reset();
+    if (result.ok && result.message) {
+      formRef.current?.reset();
+      setShowCurrent(false);
+      setShowNew(false);
+      setShowConfirm(false);
+    }
   }, [result]);
 
   return (
@@ -43,14 +53,26 @@ export function ChangePasswordForm() {
         required
         errors={errors?.currentPassword}
       >
-        <Input
-          id="currentPassword"
-          name="currentPassword"
-          type="password"
-          autoComplete="current-password"
-          invalid={Boolean(errors?.currentPassword)}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="currentPassword"
+            name="currentPassword"
+            type={showCurrent ? "text" : "password"}
+            autoComplete="current-password"
+            invalid={Boolean(errors?.currentPassword)}
+            className="pr-11"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowCurrent((v) => !v)}
+            aria-label={showCurrent ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+            aria-pressed={showCurrent}
+            className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-xl text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          >
+            {showCurrent ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
+          </button>
+        </div>
       </FormField>
 
       <FormField
@@ -60,14 +82,26 @@ export function ChangePasswordForm() {
         errors={errors?.newPassword}
         hint={`Minimal ${MIN_PASSWORD_LENGTH} karakter. Kalimat panjang lebih kuat daripada kata pendek yang dirumitkan.`}
       >
-        <Input
-          id="newPassword"
-          name="newPassword"
-          type="password"
-          autoComplete="new-password"
-          invalid={Boolean(errors?.newPassword)}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="newPassword"
+            name="newPassword"
+            type={showNew ? "text" : "password"}
+            autoComplete="new-password"
+            invalid={Boolean(errors?.newPassword)}
+            className="pr-11"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowNew((v) => !v)}
+            aria-label={showNew ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+            aria-pressed={showNew}
+            className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-xl text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          >
+            {showNew ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
+          </button>
+        </div>
       </FormField>
 
       <FormField
@@ -76,14 +110,26 @@ export function ChangePasswordForm() {
         required
         errors={errors?.confirmPassword}
       >
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          invalid={Boolean(errors?.confirmPassword)}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type={showConfirm ? "text" : "password"}
+            autoComplete="new-password"
+            invalid={Boolean(errors?.confirmPassword)}
+            className="pr-11"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirm((v) => !v)}
+            aria-label={showConfirm ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+            aria-pressed={showConfirm}
+            className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-xl text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          >
+            {showConfirm ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
+          </button>
+        </div>
       </FormField>
 
       <Button type="submit" disabled={pending}>

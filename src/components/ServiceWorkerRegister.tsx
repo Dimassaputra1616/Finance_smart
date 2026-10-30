@@ -5,13 +5,30 @@ import { useEffect } from "react";
 /**
  * Pendaftaran Service Worker di sisi browser.
  *
- * Hanya berjalan di browser yang mendukung Service Worker dan di lingkungan
- * HTTPS atau localhost. Membantu PWA terpasang di homescreen HP dan
- * mempercepat loading aset statis.
+ * Hanya diaktifkan pada mode PRODUKSI di lingkungan HTTPS atau domain publik.
+ * Pada mode PENGEMBANGAN (development / localhost), Service Worker dinonaktifkan
+ * dan seluruh cache dibersihkan agar aset HMR Next.js tidak tertahan di cache (stale).
  */
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+      return;
+    }
+
+    // Di development, unregister semua SW dan bersihkan cache agar perubahan kode langsung terbaca
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      if ("caches" in window) {
+        caches.keys().then((keys) => {
+          for (const key of keys) {
+            caches.delete(key);
+          }
+        });
+      }
       return;
     }
 

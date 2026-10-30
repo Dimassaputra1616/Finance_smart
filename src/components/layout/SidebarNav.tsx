@@ -4,158 +4,197 @@ import Link from "next/link";
 import { useState } from "react";
 import { LogoutButton } from "./LogoutButton";
 import { NavLinks } from "./NavLinks";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { IconArrowLeft, IconArrowRight, IconShield } from "@/components/Icons";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { IconArrowLeft, IconArrowRight, IconShield, IconUser } from "@/components/Icons";
 import { cx } from "@/components/ui/Card";
 import type { SessionUser } from "@/lib/auth";
 import { BrandMark } from "@/components/auth/BrandMark";
-import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
-import { canManageMasterData } from "@/lib/transaction-rules";
+import { APP_NAME } from "@/lib/brand";
+import { getBrandLogoUrl, type BrandConfig } from "@/lib/brand-config";
+import { canManageMasterData, canManageUsers } from "@/lib/transaction-rules";
+import { USER_ROLE_LABELS } from "@/lib/types";
+import { UserAvatar } from "@/components/users/UserAvatar";
 
 /**
- * Sidebar Enterprise Layar Lebar.
+ * Sidebar Enterprise Layar Lebar: Rapi, modern, jelas terbaca di laptop.
  *
- * Mengusung gaya perbendaharaan arsitektural:
- * - Bersih, bebas dari gradien cyan/lavender neon.
- * - Header korporat dengan kartu profil eksekutif terintegrasi.
- * - Mendukung mode kuncup (collapsed: w-20) dan diperluas (expanded: w-72).
+ * - Tombol kuncup/perluas dipasang tepat di garis pembatas (border seam) ala Linear/Notion.
+ * - Header identitas bersih dan lapang tanpa terhimpit tombol.
+ * - Navigasi menu utama dengan animasi hover modern (glide & scale).
+ * - Bagian bawah menyatukan profil pengguna, tautan akun, dan tombol keluar.
  */
-export function SidebarNav({ user }: { user?: SessionUser | null }) {
+export function SidebarNav({
+  user,
+  brand,
+}: {
+  user?: SessionUser | null;
+  brand?: BrandConfig;
+}) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const appName = brand?.appName ?? APP_NAME;
+  const appTagline = brand?.appTagline ?? "Sistem Keuangan Internal";
+  const logoUrl = getBrandLogoUrl(brand);
 
   return (
     <aside
       className={cx(
-        "sticky top-0 hidden h-screen shrink-0 overflow-hidden border-r border-sidebar-border bg-linear-to-b from-sidebar to-sidebar-2 text-sidebar-foreground shadow-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:block",
+        "sticky top-0 hidden h-screen shrink-0 border-r border-sidebar-border bg-linear-to-b from-sidebar to-sidebar-2 text-sidebar-foreground shadow-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:block z-30",
         isCollapsed ? "w-20" : "w-72",
       )}
     >
-      <div className="relative flex h-full flex-col justify-between p-4">
+      {/* Tombol Kuncup / Perluas Persis di Garis Pembatas (Border Seam Button) */}
+      <button
+        type="button"
+        className={cx(
+          "absolute -right-3.5 top-6.5 z-40 grid h-7 w-7 place-items-center rounded-full border border-sidebar-border bg-surface text-foreground shadow-xs transition-all duration-200 hover:scale-115 hover:border-primary/50 hover:text-primary active:scale-90 cursor-pointer",
+          isCollapsed
+            ? "opacity-100 ring-2 ring-primary/20"
+            : "opacity-75 hover:opacity-100",
+        )}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        aria-label={isCollapsed ? "Perluas bilah samping" : "Kuncupkan bilah samping"}
+        title={isCollapsed ? "Perluas bilah samping" : "Kuncupkan bilah samping"}
+      >
+        {isCollapsed ? (
+          <IconArrowRight className="h-3.5 w-3.5" />
+        ) : (
+          <IconArrowLeft className="h-3.5 w-3.5" />
+        )}
+      </button>
+
+      <div className="relative flex h-full flex-col justify-between p-4.5 overflow-hidden">
         {/* ======================================================== */}
-        {/* BAGIAN ATAS: LOGO PERUSAHAAN & TOGGLE COLLAPSE */}
+        {/* BAGIAN ATAS: LOGO PERUSAHAAN                             */}
         {/* ======================================================== */}
         <div className="space-y-4">
           <div
             className={cx(
-              "flex items-center",
-              isCollapsed
-                ? "flex-col gap-3 items-center"
-                : "justify-between gap-2 pb-2",
+              "flex items-center pb-1",
+              isCollapsed ? "justify-center" : "gap-3",
             )}
           >
             <Link
               href="/"
-              title={APP_NAME}
+              title={appName}
               className="group flex items-center gap-3 rounded-2xl min-w-0"
             >
-              <BrandMark className="h-10 w-10 text-xs shadow-xs transition duration-200 group-hover:scale-105" />
+              <BrandMark
+                logoUrl={logoUrl}
+                hasCustomLogo={brand?.hasCustomLogo}
+                shape={brand?.logoShape}
+                className="h-10 w-10 text-sm shadow-xs transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3"
+              />
               {!isCollapsed && (
                 <div className="min-w-0">
-                  <span className="block truncate text-sm font-semibold tracking-tight text-sidebar-foreground">
-                    {APP_NAME}
+                  <span className="block truncate text-base font-bold tracking-tight text-sidebar-foreground transition-colors duration-200 group-hover:text-sidebar-brand-from">
+                    {appName}
                   </span>
-                  <span className="block truncate text-[11px] text-sidebar-muted">
-                    {APP_TAGLINE}
+                  <span className="block truncate text-xs text-sidebar-muted">
+                    {appTagline}
                   </span>
                 </div>
               )}
             </Link>
-
-            <button
-              type="button"
-              className="grid h-8 w-8 place-items-center rounded-xl border border-sidebar-border/60 bg-sidebar-hover text-sidebar-muted hover:text-sidebar-foreground transition-colors duration-150 cursor-pointer"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              aria-label={isCollapsed ? "Perluas bilah samping" : "Kuncupkan bilah samping"}
-              title={isCollapsed ? "Perluas bilah samping" : "Kuncupkan bilah samping"}
-            >
-              {isCollapsed ? (
-                <IconArrowRight className="h-3.5 w-3.5" />
-              ) : (
-                <IconArrowLeft className="h-3.5 w-3.5" />
-              )}
-            </button>
           </div>
 
           {/* ======================================================== */}
-          {/* KARTU PROFIL USER EKSEKUTIF (APPROVER / STAF) */}
-          {/* ======================================================== */}
-          {user && !isCollapsed && (
-            <div className="flex items-center gap-2.5 rounded-2xl border border-sidebar-border bg-sidebar-active p-2.5 shadow-2xs">
-              <div className="relative grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-sidebar-brand-from text-sidebar-brand-foreground text-xs font-bold font-mono shadow-xs">
-                {user.name.charAt(0).toUpperCase()}
-                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-income ring-2 ring-sidebar-active" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-sidebar-foreground">
-                  {user.name}
-                </p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span
-                    className={cx(
-                      "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wider uppercase font-mono",
-                      user.role === "ADMIN"
-                        ? "bg-income-soft text-income"
-                        : "bg-sidebar-hover text-sidebar-muted",
-                    )}
-                  >
-                    <IconShield className="h-2.5 w-2.5" />
-                    {user.role === "ADMIN" ? "Approver" : "Staf"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {user && isCollapsed && (
-            <div
-              title={`${user.name} (${user.role === "ADMIN" ? "Approver" : "Staf"})`}
-              className="relative grid h-9 w-9 mx-auto place-items-center rounded-xl bg-sidebar-brand-from text-sidebar-brand-foreground text-xs font-bold font-mono shadow-xs cursor-default"
-            >
-              {user.name.charAt(0).toUpperCase()}
-              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-income ring-2 ring-sidebar" />
-            </div>
-          )}
-
-          {/* ======================================================== */}
-          {/* NAVIGASI MENU UTAMA */}
+          {/* NAVIGASI MENU UTAMA (Dengan Tipografi Jelas & Hover)     */}
           {/* ======================================================== */}
           <nav
             aria-label="Navigasi perbendaharaan"
-            className="min-h-0 flex-1 overflow-y-auto pt-1"
+            className="min-h-0 flex-1 overflow-y-auto pt-2"
           >
             <NavLinks
               variant="sidebar"
               isCollapsed={isCollapsed}
               canManage={canManageMasterData(user?.role)}
+              canManageUsers={canManageUsers(user?.role)}
             />
           </nav>
         </div>
 
         {/* ======================================================== */}
-        {/* BAGIAN BAWAH: STATUS PERBENDAHARAAN & KELUAR */}
+        {/* BAGIAN BAWAH: AKUN PENGGUNA TERPADU & KELUAR (ICON ONLY) */}
         {/* ======================================================== */}
-        <div className="space-y-2 border-t border-sidebar-border pt-4">
-          <div
-            className={cx(
-              "flex items-center rounded-2xl border border-sidebar-border/80 bg-sidebar-active/60 p-2",
-              isCollapsed
-                ? "justify-center"
-                : "justify-between gap-2 px-3",
-            )}
-          >
-            {!isCollapsed && (
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="h-2 w-2 rounded-full bg-income animate-pulse shrink-0" />
-                <span className="truncate text-xs font-medium text-sidebar-muted font-mono">
-                  Sistem Aktif
-                </span>
+        {user && (
+          <div className="border-t border-sidebar-border/80 pt-3">
+            {!isCollapsed ? (
+              <div className="group flex items-center justify-between gap-2 rounded-2xl border border-sidebar-border/80 bg-sidebar-active/70 p-2 shadow-2xs backdrop-blur-md transition-all duration-200 hover:bg-sidebar-active hover:border-sidebar-border hover:shadow-xs">
+                {/* Informasi Pengguna (Dapat diklik menuju profil) */}
+                <Link
+                  href="/profil"
+                  title="Lihat Profil & Keamanan"
+                  className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group/user"
+                >
+                  <UserAvatar
+                    userId={user.id}
+                    name={user.name}
+                    size="md"
+                    className="transition-transform duration-200 group-hover/user:scale-105"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-sidebar-foreground transition-colors duration-150 group-hover/user:text-sidebar-brand-from leading-tight">
+                      {user.name}
+                    </p>
+                    <div className="mt-1 flex items-center">
+                      <span
+                        className={cx(
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap",
+                          user.role === "ADMIN"
+                            ? "bg-income-soft text-income border border-income/25"
+                            : user.role === "DIRECTOR"
+                              ? "bg-sidebar-brand-from/15 text-sidebar-brand-from border border-sidebar-brand-from/30 font-semibold"
+                              : "bg-surface-muted text-muted-foreground border border-border/80",
+                        )}
+                      >
+                        <IconShield className="h-2.5 w-2.5 shrink-0" />
+                        <span>{USER_ROLE_LABELS[user.role] ?? user.role}</span>
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+
+                {/* Aksi Cepat: Notifikasi, Akun (Profil) & Keluar (Logout) sebagai Ikon Ramping */}
+                <div className="flex items-center gap-0.5 shrink-0 pl-1.5 border-l border-sidebar-border/60">
+                  <NotificationBell className="min-h-7 min-w-7 h-7 w-7 rounded-lg border-transparent hover:border-sidebar-border/80 text-sidebar-muted" />
+
+                  <Link
+                    href="/profil"
+                    title="Pengaturan Akun & Keamanan"
+                    aria-label="Pengaturan Akun & Keamanan"
+                    className="grid h-7 w-7 place-items-center rounded-lg text-sidebar-muted transition-all duration-150 hover:bg-sidebar-hover hover:text-sidebar-foreground hover:scale-110 active:scale-95 cursor-pointer"
+                  >
+                    <IconUser className="h-4 w-4" />
+                  </Link>
+
+                  <LogoutButton
+                    iconOnly
+                    className="grid h-7 w-7 place-items-center rounded-lg text-sidebar-muted transition-all duration-150 hover:bg-destructive-soft hover:text-destructive hover:scale-110 active:scale-95 cursor-pointer"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Mode Kuncup (Collapsed) */
+              <div className="flex flex-col items-center gap-2">
+                <NotificationBell className="min-h-8 min-w-8 h-8 w-8 rounded-xl border-transparent hover:border-sidebar-border/80 text-sidebar-muted" />
+
+                <Link
+                  href="/profil"
+                  title={`${user.name} (${USER_ROLE_LABELS[user.role] ?? user.role})`}
+                  className="transition-transform duration-200 hover:scale-110 cursor-pointer"
+                >
+                  <UserAvatar userId={user.id} name={user.name} size="md" />
+                </Link>
+
+                <LogoutButton
+                  iconOnly
+                  className="grid h-8 w-8 place-items-center rounded-xl text-sidebar-muted transition-all duration-150 hover:bg-destructive-soft hover:text-destructive hover:scale-110 active:scale-95 cursor-pointer"
+                />
               </div>
             )}
-            <ThemeToggle className="border-sidebar-border/70 bg-transparent text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground" />
           </div>
-
-          <LogoutButton isCollapsed={isCollapsed} />
-        </div>
+        )}
       </div>
     </aside>
   );

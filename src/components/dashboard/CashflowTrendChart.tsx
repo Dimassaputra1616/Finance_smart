@@ -37,6 +37,8 @@ export function CashflowTrendChart({
       ? layout.monthGroups[hoveredIndex]
       : null;
 
+  const hasAnyData = data.some((p) => p.income > 0 || p.expense > 0);
+
   return (
     <Card className="overflow-hidden">
       <CardHeader
@@ -176,6 +178,20 @@ export function CashflowTrendChart({
               );
             })}
           </svg>
+
+          {/* Indikator Halus bila Belum Ada Transaksi Tercatat */}
+          {!hasAnyData && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
+              <div className="rounded-2xl border border-border/80 bg-surface/90 px-4 py-2.5 shadow-xs backdrop-blur-md text-center max-w-sm">
+                <p className="text-xs font-semibold text-foreground">
+                  Belum ada mutasi tercatat pada rentang 6 bulan ini
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Grafik tren arus kas akan otomatis terisi saat mutasi kas masuk atau keluar dicatat.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Interactive Tooltip Melayang yang Mengikuti Kolom */}
           {activeGroup && (

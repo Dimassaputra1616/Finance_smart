@@ -12,6 +12,7 @@ import {
 } from "@/lib/date";
 import { formatRupiah } from "@/lib/money";
 import { getCurrentUser } from "@/lib/session";
+import { canApproveTransaction } from "@/lib/transaction-rules";
 import {
   TRANSACTION_KINDS,
   TRANSACTION_KIND_LABELS,
@@ -88,7 +89,7 @@ export default async function TransactionsPage({
       getPendingSummary(),
     ]);
 
-  const isAdmin = currentUser?.role === "ADMIN";
+  const canApprove = canApproveTransaction(currentUser?.role ?? "");
 
   const activeFilters = {
     bulan: monthKey,
@@ -407,8 +408,8 @@ export default async function TransactionsPage({
                       </span>
 
                       <div className="flex shrink-0 items-center gap-1.5">
-                        {/* Aksi Approval untuk Admin */}
-                        {isAdmin && txStatus === "PENDING" && (
+                        {/* Aksi Approval untuk Admin & Direktur */}
+                        {canApprove && txStatus === "PENDING" && (
                           <ApprovalActions
                             transactionId={transaction.id}
                             description={transaction.description}
@@ -532,7 +533,7 @@ export default async function TransactionsPage({
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex justify-end items-center gap-2">
-                            {isAdmin && txStatus === "PENDING" && (
+                            {canApprove && txStatus === "PENDING" && (
                               <ApprovalActions
                                 transactionId={transaction.id}
                                 description={transaction.description}

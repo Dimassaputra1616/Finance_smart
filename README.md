@@ -288,6 +288,5 @@ ngoprek.
 - Transfer antar akun sebagai dua transaksi berpasangan
 - Pengingat jatuh tempo piutang
 - Impor CSV dari mutasi bank
-- Unggah foto struk pada transaksi
 
 Detail spesifikasi dan perencanaan fitur Personal Finance Planner selengkapnya tersedia di [`docs/ROADMAP_PLANNER.md`](docs/ROADMAP_PLANNER.md).

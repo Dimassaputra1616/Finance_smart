@@ -1,102 +1,117 @@
-import { IconReceipt, IconScale, IconShield } from "@/components/Icons";
 import { TheTreasurer } from "@/components/illustrations/TheTreasurer";
+import { MascotSpeechBubble } from "@/components/illustrations/MascotSpeechBubble";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import { getBrandLogoUrl, getBrandMascotUrl, type BrandConfig } from "@/lib/brand-config";
 import { BrandMark } from "./BrandMark";
 
 /**
- * Hanya hal yang benar-benar dilakukan aplikasi. Tidak ada angka saldo atau
- * transaksi contoh: di layar yang bisa dilihat siapa pun sebelum masuk, angka
- * karangan terlihat seperti kebocoran data, dan klaim yang tidak bisa dibuktikan
- * ("Keamanan Tingkat Perusahaan", "Akses Terenkripsi") dibuang.
- */
-const FEATURES = [
-  {
-    icon: IconShield,
-    title: "Pengeluaran staf perlu persetujuan",
-    text: "Pengajuan baru belum memengaruhi saldo kas sampai disetujui administrator.",
-  },
-  {
-    icon: IconReceipt,
-    title: "Bukti nota ikut tersimpan",
-    text: "Foto struk dilampirkan saat mencatat dan bisa dibuka lagi kapan saja.",
-  },
-  {
-    icon: IconScale,
-    title: "Ringkasan kas dalam satu layar",
-    text: "Penerimaan, pengeluaran, dan saldo tiap rekening per bulan.",
-  },
-] as const;
-
-/**
- * Panel kiri halaman login. Hanya tampil di layar lebar (`lg` ke atas).
+ * Panel kiri halaman masuk: Elegan, lapang, dan berwibawa.
  *
- * Halaman login tidak boleh punya scroll, jadi tinggi panel ini harus muat di
- * layar apa pun yang umum, termasuk laptop berlayar pendek. Alih-alih mengecil
- * tak terbatas, isinya dikurangi menurut TINGGI layar (kelas di `globals.css`):
- *   - di bawah 780px: ilustrasi disembunyikan
- *   - di bawah 600px: deskripsi poin disembunyikan, judulnya tetap
- * Hanya menyembunyikan dekorasi dan teks pendukung; merek, judul, dan ketiga
- * poin selalu tampil.
+ * Mengusung konsep Storytelling Showcase:
+ * - Headline tipografi editorial tebal di sisi kiri.
+ * - Maskot 3D Bendahara Digital dan Balon Kata Percakapan Animasi di sisi kanan.
+ * - Bebas dari kotak-kotak bertumpuk yang membuat halaman terasa ramai.
  */
-export function LoginShowcase() {
+export function LoginShowcase({ brand }: { brand?: BrandConfig }) {
+  const appName = brand?.appName ?? APP_NAME;
+  const appTagline = brand?.appTagline ?? APP_TAGLINE;
+  const logoUrl = getBrandLogoUrl(brand);
   return (
     <aside
       aria-label="Tentang aplikasi"
-      className="relative hidden overflow-hidden border-r border-sidebar-border bg-linear-to-b from-sidebar to-sidebar-2 p-10 text-sidebar-foreground lg:flex lg:w-[44%] lg:flex-col lg:justify-between xl:p-12"
+      className="relative hidden overflow-hidden border-r border-sidebar-border bg-linear-to-b from-sidebar to-sidebar-2 px-8 py-6 text-sidebar-foreground sm:px-10 lg:flex lg:w-1/2 lg:flex-col lg:justify-between lg:px-10 lg:py-7 xl:px-14 xl:py-8 2xl:px-20"
     >
-      {/* Tekstur titik, murni dekorasi. */}
+      {/* ======================================================== */}
+      {/* 1. ANIMASI LATAR BELAKANG AMBIENT (RINGAN, 100% GPU)     */}
+      {/* ======================================================== */}
+      <style>{`
+        @keyframes aurora-drift-1 {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(40px, -35px, 0) scale(1.15); }
+        }
+        @keyframes aurora-drift-2 {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(-35px, 40px, 0) scale(1.18); }
+        }
+        @keyframes aurora-drift-3 {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(25px, 30px, 0) scale(0.92); }
+        }
+        .anim-aurora-1 { animation: aurora-drift-1 18s ease-in-out infinite; will-change: transform; }
+        .anim-aurora-2 { animation: aurora-drift-2 22s ease-in-out infinite; will-change: transform; }
+        .anim-aurora-3 { animation: aurora-drift-3 26s ease-in-out infinite; will-change: transform; }
+        @media (prefers-reduced-motion: reduce) {
+          .anim-aurora-1, .anim-aurora-2, .anim-aurora-3 { animation: none !important; }
+        }
+      `}</style>
+
+      {/* Tiga Bola Cahaya Ambient Bernapas (Floating Aurora Mesh) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        className="pointer-events-none absolute -top-16 -left-16 h-96 w-96 rounded-full bg-sidebar-brand-from/20 blur-3xl transform-gpu anim-aurora-1"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-20 -right-16 h-96 w-96 rounded-full bg-primary/15 blur-3xl transform-gpu anim-aurora-2"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-1/3 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/12 blur-3xl transform-gpu anim-aurora-3"
+      />
+
+      {/* Kisi Titik Halus Moneter (Matrix Grid yang Menangkap Pendaran Cahaya) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
-          backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
+          backgroundImage: "radial-gradient(currentColor 1.2px, transparent 1.2px)",
+          backgroundSize: "24px 24px",
         }}
       />
 
-      <div className="relative flex items-center gap-3">
-        <BrandMark className="h-10 w-10 text-xs" />
+      {/* ======================================================== */}
+      {/* 2. HEADER IDENTITAS MEREK (Tinggi persis setara h-11)    */}
+      {/* ======================================================== */}
+      <div className="relative z-10 flex h-11 items-center gap-3 group cursor-default">
+        <BrandMark
+          logoUrl={logoUrl}
+          hasCustomLogo={brand?.hasCustomLogo}
+          shape={brand?.logoShape}
+          className="h-10 w-10 text-xs shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-md"
+        />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold tracking-tight">{APP_NAME}</p>
-          <p className="truncate text-xs text-sidebar-muted">{APP_TAGLINE}</p>
+          <p className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground transition-colors duration-200 group-hover:text-sidebar-brand-from">
+            {appName}
+          </p>
+          <p className="truncate text-xs text-sidebar-muted">{appTagline}</p>
         </div>
       </div>
 
-      <div className="relative my-auto max-w-md space-y-6 py-6">
-        {/* Karakternya berjas pinus gelap. Di mode gelap latar panel ini juga
-            pinus, jadi tanpa alas ia menyatu dengan latar. Alas `surface`
-            adalah latar yang sama dengan kartu sambutan di dashboard. */}
-        <div className="hide-on-short-screen w-fit rounded-3xl border border-sidebar-border bg-surface p-3 shadow-card">
-          <TheTreasurer size="sm" />
+      {/* ======================================================== */}
+      {/* 3. KONTEN UTAMA: MASKOT 3D (KIRI) & BALON KATA (DEKAT)   */}
+      {/* ======================================================== */}
+      <div className="relative z-10 my-auto flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 lg:gap-5 xl:gap-8 2xl:gap-12 py-3 px-2 w-full max-w-5xl mx-auto">
+        {/* Sisi Kiri: Karakter 3D Bendahara Digital (Dekat & Pas) */}
+        <div className="shrink-0 flex flex-col items-center justify-center">
+          <TheTreasurer size="lg" mascotUrl={getBrandMascotUrl(brand)} />
         </div>
 
-        <h2 className="text-xl font-semibold leading-snug tracking-tight xl:text-2xl">
-          Kas tercatat rapi, setiap pengeluaran disetujui.
-        </h2>
-
-        <ul className="space-y-4">
-          {FEATURES.map(({ icon: Icon, title, text }) => (
-            <li key={title} className="flex items-start gap-3.5">
-              <span
-                aria-hidden="true"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-sidebar-border bg-sidebar-active text-sidebar-brand-from"
-              >
-                <Icon className="h-[1.1rem] w-[1.1rem]" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">{title}</p>
-                <p className="hide-on-tiny-screen mt-0.5 text-sm leading-relaxed text-sidebar-muted">
-                  {text}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {/* Sisi Kanan: Balon Percakapan Melayang Sejajar Bahu/Wajah Maskot */}
+        <div className="shrink-0 flex items-center justify-center lg:self-start lg:mt-6 xl:mt-8 2xl:mt-10 lg:-ml-2">
+          <MascotSpeechBubble tailPosition="left" />
+        </div>
       </div>
 
-      <p className="relative border-t border-sidebar-border pt-3 text-xs text-sidebar-muted">
-        Zona waktu Asia/Jakarta (WIB)
-      </p>
+      {/* ======================================================== */}
+      {/* 4. FOOTER STATUS SISTEM (Presisi Sejajar Horisontal)     */}
+      {/* ======================================================== */}
+      <div className="relative z-10 flex h-6 items-center justify-between border-t border-sidebar-border pt-3.5 text-[11px] text-sidebar-muted">
+        <span className="font-mono">Zona waktu Asia/Jakarta (WIB)</span>
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <span className="h-1.5 w-1.5 rounded-full bg-income" />
+          Jaringan Terproteksi
+        </span>
+      </div>
     </aside>
   );
 }

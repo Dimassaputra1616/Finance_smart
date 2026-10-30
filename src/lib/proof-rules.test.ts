@@ -15,13 +15,22 @@ const PNG = bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00);
 const WEBP = bytes(
   0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
 );
+const HEIC = bytes(
+  0x00, 0x00, 0x00, 0x18, // box size
+  0x66, 0x74, 0x79, 0x70, // 'ftyp'
+  0x68, 0x65, 0x69, 0x63, // 'heic' major brand
+  0x00, 0x00, 0x00, 0x00,
+  0x6d, 0x69, 0x66, 0x31, // 'mif1' compatible brand
+  0x68, 0x65, 0x69, 0x63, // 'heic' compatible brand
+);
 const textBytes = (text: string) => new TextEncoder().encode(text);
 
 describe("detectProofType", () => {
-  it("mengenali JPEG, PNG, dan WebP dari isinya", () => {
+  it("mengenali JPEG, PNG, WebP, dan HEIC dari isinya", () => {
     expect(detectProofType(JPEG)).toBe("jpeg");
     expect(detectProofType(PNG)).toBe("png");
     expect(detectProofType(WEBP)).toBe("webp");
+    expect(detectProofType(HEIC)).toBe("heic");
   });
 
   it("menolak HTML dan SVG walau berisi skrip", () => {
@@ -47,6 +56,7 @@ describe("checkProofFile", () => {
     expect(checkProofFile(JPEG)).toEqual({ ok: true, type: "jpeg", extension: "jpg" });
     expect(checkProofFile(PNG)).toEqual({ ok: true, type: "png", extension: "png" });
     expect(checkProofFile(WEBP)).toEqual({ ok: true, type: "webp", extension: "webp" });
+    expect(checkProofFile(HEIC)).toEqual({ ok: true, type: "heic", extension: "heic" });
   });
 
   it("menolak berkas kosong", () => {
@@ -58,7 +68,7 @@ describe("checkProofFile", () => {
   it("menolak yang bukan gambar", () => {
     const res = checkProofFile(textBytes("<script>alert(1)</script>"));
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.message).toContain("JPEG, PNG, atau WebP");
+    if (!res.ok) expect(res.message).toContain("JPEG, PNG, WebP, atau HEIC");
   });
 
   it("menerima tepat di batas ukuran dan menolak 1 byte di atasnya", () => {
@@ -79,6 +89,7 @@ describe("isSafeProofFileName", () => {
     expect(isSafeProofFileName("proof_1793017003886_a1b2c3d4e5f6.jpg")).toBe(true);
     expect(isSafeProofFileName("proof_1793017003886_52njjv.webp")).toBe(true);
     expect(isSafeProofFileName("proof_1793017003886_a1b2c3d4e5f6.png")).toBe(true);
+    expect(isSafeProofFileName("proof_1793017003886_a1b2c3d4e5f6.heic")).toBe(true);
   });
 
   it("menolak path traversal dan pemisah direktori", () => {
@@ -109,6 +120,7 @@ describe("proofContentType", () => {
     expect(proofContentType("proof_1793017003886_a1b2c3d4e5f6.webp")).toBe("image/webp");
     expect(proofContentType("proof_1793017003886_a1b2c3d4e5f6.jpg")).toBe("image/jpeg");
     expect(proofContentType("proof_1793017003886_a1b2c3d4e5f6.png")).toBe("image/png");
+    expect(proofContentType("proof_1793017003886_a1b2c3d4e5f6.heic")).toBe("image/heic");
   });
 
   it("mengembalikan null untuk nama yang tidak sah", () => {

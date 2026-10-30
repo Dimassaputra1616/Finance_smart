@@ -14,7 +14,7 @@ import { db } from "@/lib/db";
 import { checkPasswordChange } from "@/lib/password-rules";
 import { loginRateLimiter } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/session";
-import { actionError, type ActionResult } from "@/lib/types";
+import { actionError, type ActionResult, type UserRole } from "@/lib/types";
 
 /**
  * Aksi login dan logout enterprise.
@@ -33,20 +33,23 @@ export async function login(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
-  const username = String(formData.get("username") ?? "").trim().toLowerCase();
+  const identifier = String(
+    formData.get("email") ?? formData.get("username") ?? "",
+  ).trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const rememberMe = formData.get("rememberMe") !== null;
 
-  if (!username || !password) {
-    return actionError("Nama pengguna dan kata sandi wajib diisi.");
+  if (!identifier || !password) {
+    return actionError("Email perusahaan dan kata sandi wajib diisi.");
   }
 
-  // Identifikasi klien berdasarkan IP & username untuk membatasi percobaan brute-force
+  // Identifikasi klien berdasarkan IP & kredensial untuk membatasi percobaan brute-force
   const headerList = await headers();
   const clientIp =
     headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     headerList.get("x-real-ip") ||
     "localhost";
-  const rateKey = `${clientIp}:${username}`;
+  const rateKey = `${clientIp}:${identifier}`;
 
   const rateCheck = loginRateLimiter.check(rateKey);
   if (!rateCheck.allowed) {
@@ -59,7 +62,7 @@ export async function login(
   const setSessionCookie = async (user: {
     id: string;
     username: string;
-    role: "ADMIN" | "STAFF";
+    role: UserRole;
     name: string;
   }) => {
     const token = await createSessionToken(user, authSecret);
@@ -69,7 +72,7 @@ export async function login(
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: SESSION_MAX_AGE_SECONDS,
+      ...(rememberMe ? { maxAge: SESSION_MAX_AGE_SECONDS } : {}),
     });
   };
 
@@ -83,7 +86,7 @@ export async function login(
     const userDelegate = (db as any).user;
     if (userDelegate) {
       const user = await userDelegate.findUnique({
-        where: { username },
+        where: { username: identifier },
       });
 
       if (user && user.isActive) {
@@ -93,7 +96,7 @@ export async function login(
           await setSessionCookie({
             id: user.id,
             username: user.username,
-            role: user.role === "STAFF" ? "STAFF" : "ADMIN",
+            role: user.role === "ADMIN" || user.role === "DIRECTOR" ? user.role : "STAFF",
             name: user.name,
           });
 
@@ -118,7 +121,7 @@ export async function login(
   const envPass = process.env.BASIC_AUTH_PASS;
   if (envUser && envPass) {
     if (
-      username === envUser.toLowerCase() &&
+      identifier === envUser.toLowerCase() &&
       passwordMatches(password, envPass)
     ) {
       loginRateLimiter.reset(rateKey);
@@ -136,7 +139,7 @@ export async function login(
   // Gagal: catat kegagalan untuk rate limiting
   loginRateLimiter.recordFailure(rateKey);
 
-  return actionError("Nama pengguna atau kata sandi tidak sesuai. Silakan periksa kembali.");
+  return actionError("Email perusahaan atau kata sandi tidak valid. Silakan periksa kembali.");
 }
 
 export async function logout(): Promise<void> {

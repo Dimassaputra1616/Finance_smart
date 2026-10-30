@@ -7,7 +7,7 @@
  * 3. Mutasi data & Server Action (POST/PUT/DELETE): Network-Only
  */
 
-const CACHE_NAME = "keuangan-static-v1";
+const CACHE_NAME = "keuangan-static-v2";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_ASSETS = ["/manifest.webmanifest", "/icon.svg", OFFLINE_URL];
@@ -39,6 +39,11 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
 
   const url = new URL(req.url);
+
+  // Jangan pernah cache aset di localhost / 127.0.0.1 saat development
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+    return;
+  }
 
   // Abaikan API bot & request upload
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/uploads/")) {
@@ -78,4 +83,65 @@ self.addEventListener("fetch", (event) => {
       }),
     );
   }
+});
+
+/**
+ * 3. Event Push: Menangkap notifikasi dari server bahkan saat aplikasi ditutup.
+ * Menampilkan banner notifikasi native di notification drawer Android / sistem operasi.
+ */
+self.addEventListener("push", (event) => {
+  let payload = {
+    title: "Perbendaharaan & Kas",
+    body: "Ada pembaruan mutasi kas terbaru.",
+    url: "/",
+  };
+
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload.body = event.data.text();
+    }
+  }
+
+  const title = payload.title || "Perbendaharaan & Kas";
+  const options = {
+    body: payload.body || "",
+    icon: payload.icon || "/icon",
+    badge: payload.badge || "/icon",
+    vibrate: [200, 100, 200],
+    data: {
+      url: payload.url || "/",
+      dateOfArrival: Date.now(),
+    },
+    tag: payload.tag || "keuangan-app-notification",
+    renotify: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+/**
+ * 4. Event Notification Click: Pengguna mengetuk notifikasi di HP.
+ * Menutup banner notifikasi dan langsung membuka/fokus ke halaman aplikasi terkait.
+ */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      // Jika tab/jendela sudah ada, fokuskan dan arahkan ke URL
+      for (const client of windowClients) {
+        if (client.url.includes(targetUrl) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      // Jika belum ada jendela aktif, buka jendela baru
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    }),
+  );
 });

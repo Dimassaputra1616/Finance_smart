@@ -12,6 +12,8 @@
  * Server Action (Node).
  */
 
+import type { UserRole } from "./types";
+
 export const SESSION_COOKIE_NAME = "keuangan_session";
 
 /** 30 hari, dalam detik. */
@@ -20,14 +22,14 @@ export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 export type SessionUser = {
   id: string;
   username: string;
-  role: "ADMIN" | "STAFF";
+  role: UserRole;
   name: string;
 };
 
 type SessionPayload = {
   id?: string;
   u: string;
-  r?: "ADMIN" | "STAFF";
+  r?: UserRole;
   n?: string;
   exp: number;
 };
@@ -102,7 +104,7 @@ export async function createSessionToken(
     | {
         id?: string;
         username: string;
-        role?: "ADMIN" | "STAFF";
+        role?: UserRole;
         name?: string;
       },
   secret: string,
@@ -166,7 +168,12 @@ export async function verifySession(
     return null;
   }
 
-  const role = payload.r === "STAFF" ? "STAFF" : "ADMIN";
+  const role: UserRole =
+    payload.r === "STAFF"
+      ? "STAFF"
+      : payload.r === "DIRECTOR"
+        ? "DIRECTOR"
+        : "ADMIN";
   return {
     id: payload.id ?? payload.u,
     username: payload.u,

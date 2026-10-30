@@ -1,217 +1,120 @@
-"use client";
-
 import { cx } from "@/components/ui/Card";
+import { MascotSpeechBubble } from "./MascotSpeechBubble";
+
+export type TreasurerSize = "sm" | "md" | "lg" | "xl";
+
+interface SizeSpec {
+  img: string;
+  stage: string;
+  innerStage: string;
+  shadow: string;
+}
+
+const SIZE_MAP: Record<TreasurerSize, SizeSpec> = {
+  sm: {
+    img: "h-36 sm:h-44",
+    stage: "h-7 w-36 sm:w-44",
+    innerStage: "h-3.5 w-28 sm:w-36",
+    shadow: "h-2 w-20 sm:w-26",
+  },
+  md: {
+    img: "h-56 sm:h-64",
+    stage: "h-8 w-48 sm:w-56",
+    innerStage: "h-4.5 w-36 sm:w-44",
+    shadow: "h-2.5 w-28 sm:w-32",
+  },
+  lg: {
+    img: "h-72 sm:h-80 lg:h-[25rem] xl:h-[30rem] 2xl:h-[35rem]",
+    stage: "h-8 w-52 sm:w-60 lg:h-10 lg:w-72 xl:h-11 xl:w-84 2xl:h-12 2xl:w-96",
+    innerStage: "h-4.5 w-40 sm:w-48 lg:h-5.5 lg:w-56 xl:h-6 xl:w-68 2xl:h-7 2xl:w-76",
+    shadow: "h-2.5 w-32 sm:w-36 lg:h-3 lg:w-44 xl:h-4 xl:w-52 2xl:h-4.5 2xl:w-60",
+  },
+  xl: {
+    img: "h-[22rem] sm:h-[26rem] lg:h-[32rem] xl:h-[38rem] 2xl:h-[44rem]",
+    stage: "h-9 w-60 sm:w-72 lg:h-11 lg:w-84 xl:h-13 xl:w-96 2xl:h-14 2xl:w-[28rem]",
+    innerStage: "h-5 w-48 sm:w-56 lg:h-6 lg:w-68 xl:h-7.5 xl:w-76 2xl:h-8 2xl:w-88",
+    shadow: "h-3 w-36 sm:w-44 lg:h-4 lg:w-52 xl:h-5 xl:w-60 2xl:h-5.5 2xl:w-68",
+  },
+};
 
 /**
- * Karakter Bendahara Digital ("The Modern Corporate Treasurer").
+ * Karakter Bendahara Digital ("The 3D Corporate Treasurer").
  *
- * Ilustrasi vektor SVG presisi bertema perbendaharaan modern (Notion/Monocle inspired).
- * Menggunakan animasi mikro CSS murni:
- * - Badan & kepala melayang halus (gentle breathing float).
- * - Tangan dengan papan audit/nota berayun lembut meninjau angka.
- * - Kerlip bintang mikro pendar pada dokumen perbendaharaan.
- * - Kompatibel 100% pada mode terang (Warm Sandstone) dan mode gelap (Alpine Pine & Gold).
+ * Menampilkan karakter 3D berkualitas tinggi yang berdiri di atas panggung elips 3D
+ * berpendar lembut (Luminous 3D Stage Ring) dengan bayangan lantai realistis.
+ * Skala visual proporsional otomatis di monitor laptop, desktop standar, hingga ultrawide.
  */
 export function TheTreasurer({
   className,
   size = "md",
+  withSpeechBubble = false,
+  mascotUrl = "/api/mascot",
 }: {
   className?: string;
-  size?: "sm" | "md" | "lg";
+  size?: TreasurerSize;
+  withSpeechBubble?: boolean;
+  mascotUrl?: string;
 }) {
-  const sizeMap = {
-    sm: "h-28 w-28",
-    md: "h-40 w-40 sm:h-44 sm:w-44",
-    lg: "h-52 w-52 sm:h-60 sm:w-60",
-  };
+  const { img, stage, innerStage, shadow } = SIZE_MAP[size];
 
   return (
     <div
+      suppressHydrationWarning
       className={cx(
-        "relative flex items-center justify-center select-none",
-        sizeMap[size],
+        "relative flex flex-col items-center justify-center select-none group",
         className,
       )}
-      aria-hidden="true"
     >
-      {/* Pendaran Latar Belakang (Ambient Halo) */}
-      <div className="absolute inset-2 rounded-full bg-linear-to-tr from-primary/15 via-[#c49a45]/15 to-transparent blur-2xl dark:from-primary/25 dark:via-[#e8c77b]/20" />
+      {/* Balon Percakapan Melayang di Atas Kepala Karakter */}
+      {withSpeechBubble && (
+        <MascotSpeechBubble tailPosition="bottom" className="mb-4 shrink-0" />
+      )}
 
-      {/* SVG Karakter Vektor Editorial */}
-      <svg
-        viewBox="0 0 200 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="relative z-10 h-full w-full drop-shadow-md"
-      >
-        <defs>
-          <linearGradient id="blazerGrad" x1="50" y1="90" x2="150" y2="180" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#142d22" className="dark:stop-color-[#1b3d2f]" />
-            <stop offset="1" stopColor="#0d1f17" className="dark:stop-color-[#0f241c]" />
-          </linearGradient>
+      <div className="relative flex flex-col items-center justify-center" aria-hidden="true">
+        {/* Pendaran Cahaya Ambient 3D di Belakang Karakter */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-2 top-1/4 bottom-10 rounded-full bg-linear-to-tr from-sidebar-brand-to/30 via-primary/20 to-accent/20 blur-3xl transform-gpu"
+        />
 
-          <linearGradient id="goldAccent" x1="0" y1="0" x2="1" y2="1">
-            <stop stopColor="#e8c77b" />
-            <stop offset="1" stopColor="#c49a45" />
-          </linearGradient>
+        {/* Gambar Karakter 3D Transparan Asli */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={mascotUrl}
+          alt="Bendahara Digital 3D"
+          className={cx(
+            "relative z-10 w-auto object-contain drop-shadow-2xl transition-transform duration-300 group-hover:scale-105",
+            img,
+          )}
+        />
 
-          <linearGradient id="paperGrad" x1="120" y1="80" x2="170" y2="160" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#ffffff" className="dark:stop-color-[#e6ede9]" />
-            <stop offset="1" stopColor="#f3f0e6" className="dark:stop-color-[#c9d4cd]" />
-          </linearGradient>
-        </defs>
-
-        <style>{`
-          @keyframes treasurer-float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-4px) rotate(0.6deg); }
-          }
-          @keyframes arm-ledger {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-2.5deg); }
-          }
-          @keyframes sparkle-pulse {
-            0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
-            50% { transform: scale(1.25) rotate(45deg); opacity: 1; }
-          }
-          @keyframes blink-eye {
-            0%, 96%, 100% { transform: scaleY(1); }
-            98% { transform: scaleY(0.1); }
-          }
-          .anim-treasurer { animation: treasurer-float 4.5s ease-in-out infinite; transform-origin: 100px 140px; }
-          .anim-ledger { animation: arm-ledger 3.2s ease-in-out infinite; transform-origin: 125px 120px; }
-          .anim-sparkle { animation: sparkle-pulse 2.4s ease-in-out infinite; transform-origin: 165px 78px; }
-          .anim-eye { animation: blink-eye 4.2s infinite; transform-origin: center; }
-          @media (prefers-reduced-motion: reduce) {
-            .anim-treasurer, .anim-ledger, .anim-sparkle, .anim-eye { animation: none !important; }
-          }
-        `}</style>
-
-        {/* Grup Karakter yang Melayang Lembut */}
-        <g className="anim-treasurer">
-          {/* Bayangan Dasar di Bawah Kursi/Badan */}
-          <ellipse cx="100" cy="182" rx="42" ry="7" fill="currentColor" className="text-foreground/8 dark:text-black/40" />
-
-          {/* Badan / Blazer Eksekutif Modern */}
-          <path
-            d="M58 140 C58 115, 78 105, 100 105 C122 105, 142 115, 142 140 L145 178 C145 180, 140 182, 100 182 C60 182, 55 180, 55 178 Z"
-            fill="url(#blazerGrad)"
-          />
-
-          {/* Kemeja & Kerah V-Neck Rapi */}
-          <path d="M88 105 L100 132 L112 105 Z" fill="#ffffff" className="dark:fill-[#e0eae3]" />
-          {/* Dasi / Aksen Emas Sampanye Perbendaharaan */}
-          <path d="M98 118 L102 118 L104 148 L100 152 L96 148 Z" fill="url(#goldAccent)" />
-
-          {/* Leher */}
-          <rect x="93" y="88" width="14" height="20" rx="4" fill="#f8d5b8" className="dark:fill-[#dfb696]" />
-
-          {/* Kepala */}
-          <circle cx="100" cy="72" r="23" fill="#f8d5b8" className="dark:fill-[#dfb696]" />
-
-          {/* Rambut Gaya Crop Modern */}
-          <path
-            d="M77 68 C76 52, 90 44, 108 44 C124 44, 126 55, 125 64 C121 62, 114 62, 108 64 C100 66, 92 63, 85 68 C81 70, 78 72, 77 68 Z"
-            fill="#1d2d24"
-            className="dark:fill-[#0d1812]"
-          />
-          {/* Rambut Samping */}
-          <path d="M77 65 C77 75, 78 80, 80 82" stroke="#1d2d24" strokeWidth="3" strokeLinecap="round" className="dark:stroke-[#0d1812]" />
-
-          {/* Kacamata Arsitektural / Finansial Khas Treasury */}
-          <g>
-            <rect x="85" y="67" width="12" height="10" rx="3.5" fill="none" stroke="#e8c77b" strokeWidth="1.8" />
-            <rect x="103" y="67" width="12" height="10" rx="3.5" fill="none" stroke="#e8c77b" strokeWidth="1.8" />
-            <path d="M97 71 L103 71" stroke="#e8c77b" strokeWidth="1.8" />
-          </g>
-
-          {/* Mata yang Sesekali Mengedip Ramah */}
-          <g className="anim-eye">
-            <circle cx="91" cy="72" r="1.5" fill="#142d22" className="dark:fill-[#0a1711]" />
-            <circle cx="109" cy="72" r="1.5" fill="#142d22" className="dark:fill-[#0a1711]" />
-          </g>
-
-          {/* Senyum Percaya Diri */}
-          <path d="M96 81 Q100 84 104 81" stroke="#a36b4a" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-
-          {/* Lengan Kiri Santai */}
-          <path
-            d="M60 128 C56 142, 62 162, 76 166"
-            stroke="#142d22"
-            strokeWidth="11"
-            strokeLinecap="round"
-            fill="none"
-            className="dark:stroke-[#1b3d2f]"
-          />
-          <circle cx="78" cy="166" r="5" fill="#f8d5b8" className="dark:fill-[#dfb696]" />
-
-          {/* Lengan Kanan Memegang Papan Dokumen / Nota Digital */}
-          <g className="anim-ledger">
-            {/* Papan Klip Kayu / Leather Ledger Folder */}
-            <rect
-              x="118"
-              y="98"
-              width="44"
-              height="58"
-              rx="6"
-              fill="#2c3e35"
-              className="dark:fill-[#1b2b23] shadow-md"
-              transform="rotate(-8 140 127)"
-            />
-            {/* Klip Logam Emas di Atas */}
-            <rect
-              x="132"
-              y="93"
-              width="16"
-              height="6"
-              rx="2"
-              fill="url(#goldAccent)"
-              transform="rotate(-8 140 96)"
+        {/* ======================================================== */}
+        {/* PANGGUNG 3D REFLEKTIF (LUMINOUS STAGE RING) DI LANTAI   */}
+        {/* ======================================================== */}
+        <div className="relative -mt-4.5 flex flex-col items-center justify-center transition-transform duration-300 group-hover:scale-105">
+          {/* Cincin Luar (Outer Halo Ring) */}
+          <div
+            className={cx(
+              "relative flex items-center justify-center rounded-full border border-sidebar-brand-to/35 bg-sidebar-brand-to/5 shadow-2xl backdrop-blur-xs transition-colors duration-300 group-hover:border-sidebar-brand-to/60",
+              stage,
+            )}
+          >
+            {/* Cincin Dalam Konsentris (Inner Ring) */}
+            <div
+              className={cx(
+                "rounded-full border border-sidebar-brand-from/30 bg-sidebar-active/15 transition-colors duration-300 group-hover:border-sidebar-brand-from/50",
+                innerStage,
+              )}
             />
 
-            {/* Lembar Nota / Laporan Bergaris */}
-            <rect
-              x="122"
-              y="104"
-              width="36"
-              height="48"
-              rx="3"
-              fill="url(#paperGrad)"
-              transform="rotate(-8 140 128)"
-            />
-            {/* Garis-Garis Angka Akuntansi pada Lembar Nota */}
-            <path
-              d="M127 114 L148 111 M127 122 L152 118 M127 130 L144 127 M127 138 L150 135"
-              stroke="#687e72"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            {/* Tanda Centang Hijau / ACC Stamp di Nota */}
-            <circle cx="145" cy="138" r="4.5" fill="#136c42" className="dark:fill-[#34d399]" />
-            <path d="M143 138 L144.5 139.5 L147.5 136.5" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Bayangan Kontak Sepatu (Ground Contact Shadow) */}
+            <div className={cx("absolute rounded-full bg-black/55 blur-xs", shadow)} />
+          </div>
 
-            {/* Tangan Kanan Memegang Papan */}
-            <path
-              d="M136 120 C130 132, 126 148, 124 158"
-              stroke="#142d22"
-              strokeWidth="11"
-              strokeLinecap="round"
-              fill="none"
-              className="dark:stroke-[#1b3d2f]"
-            />
-            <circle cx="123" cy="158" r="5" fill="#f8d5b8" className="dark:fill-[#dfb696]" />
-          </g>
-
-          {/* Bintang Kerlip Pendar (Accounting Precision Sparkle) */}
-          <g className="anim-sparkle">
-            <path
-              d="M165 72 Q165 78 171 78 Q165 78 165 84 Q165 78 159 78 Q165 78 165 72 Z"
-              fill="url(#goldAccent)"
-            />
-            <circle cx="174" cy="70" r="1.5" fill="#e8c77b" />
-          </g>
-        </g>
-      </svg>
+          {/* Pendaran Cahaya Halus di Lantai */}
+          <div className="absolute h-10 w-44 rounded-full bg-primary/10 blur-xl pointer-events-none" />
+        </div>
+      </div>
     </div>
   );
 }

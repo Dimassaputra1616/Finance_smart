@@ -28,13 +28,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Aset PWA publik (manifest, service worker, ikon, halaman offline) boleh dibuka tanpa sesi.
+  // Aset publik (manifest, service worker, ikon, logo brand, halaman offline, maskot 3D) boleh dibuka tanpa sesi.
   if (
     pathname === "/manifest.webmanifest" ||
     pathname === "/sw.js" ||
     pathname === "/offline.html" ||
     pathname.startsWith("/icon") ||
-    pathname.startsWith("/apple-icon")
+    pathname.startsWith("/apple-icon") ||
+    pathname === "/api/mascot" ||
+    pathname === "/treasurer-3d.png" ||
+    pathname === "/api/brand/logo"
   ) {
     return NextResponse.next();
   }

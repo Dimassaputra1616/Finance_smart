@@ -32,24 +32,24 @@ export function WealthCard({
       <div className="relative flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="flex h-5 items-center gap-1.5 rounded-full bg-white/10 px-2 text-[10px] font-mono uppercase tracking-wider text-[#e8c77b]">
-              <IconShield className="h-3 w-3" />
+            <span className="flex h-5 items-center gap-1.5 rounded-full bg-white/10 px-2.5 text-xs font-mono uppercase tracking-wider text-[#e8c77b]">
+              <IconShield className="h-3.5 w-3.5" />
               Posisi Kas Riil
             </span>
-            <span className="text-xs text-white/60 font-mono">· Periode Berjalan</span>
+            <span className="text-xs sm:text-sm text-white/75 font-mono">· Periode Berjalan</span>
           </div>
 
-          <p className="rp-amount mt-2 text-[clamp(1.75rem,8vw,3.25rem)] font-bold tracking-tight tabular-nums sm:text-4xl lg:text-5xl text-white">
+          <p className="rp-amount mt-2.5 text-[clamp(2rem,7vw,3.5rem)] font-bold tracking-tight tabular-nums sm:text-4xl lg:text-5xl text-white">
             {formatRupiah(wealth.total)}
           </p>
 
           {wealth.isNegative ? (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-[#fca5a5]">
+            <p className="mt-2.5 flex items-center gap-1.5 text-xs sm:text-sm text-[#fca5a5]">
               <IconAlert className="h-4 w-4 shrink-0" />
               Kewajiban atau penarikan kas melebihi saldo kas yang tercatat
             </p>
           ) : (
-            <p className="mt-2 text-xs text-white/85">
+            <p className="mt-2.5 text-xs sm:text-sm text-white/90 leading-relaxed">
               Konsolidasi saldo {wealth.accountCount} rekening & kas operasional + piutang usaha tertagih
             </p>
           )}
@@ -102,14 +102,14 @@ function Breakdown({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-white/80">
+      <dt className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-white/85">
         {icon}
         <span className="truncate">{label}</span>
       </dt>
-      <dd className="rp-amount mt-1 text-lg font-bold tabular-nums sm:text-xl text-white font-mono">
+      <dd className="rp-amount mt-1 text-xl sm:text-2xl font-bold tabular-nums text-white font-mono">
         {value}
       </dd>
-      <p className="mt-0.5 text-xs text-white/70 truncate">{hint}</p>
+      <p className="mt-0.5 text-xs sm:text-sm text-white/75 truncate">{hint}</p>
     </div>
   );
 }

@@ -1,49 +1,41 @@
 "use client";
 
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/brand";
+import { getBrandLogoUrl, type BrandConfig } from "@/lib/brand-config";
 import {
   VAULT_ATTRIBUTE,
   VAULT_DURATION_MS,
-  getSessionStorage,
-  hasPlayed,
-  markPlayed,
+  VAULT_STORAGE_KEY,
 } from "@/lib/vault-gate";
 import { BrandMark } from "./BrandMark";
 
 /**
- * Gerbang pembuka di halaman login. Hanya dekorasi: `aria-hidden` dan
- * `pointer-events-none`, jadi tidak pernah menahan klik atau pembaca layar.
- *
- * Diputar sekali per sesi tab (~0,9 detik). Mematikannya lewat atribut di
- * <html> (`html[data-vault-played]` di globals.css) karena tiga jalur:
- *
- * 1. Muat ulang keras: skrip inline di root layout memasang atribut sebelum
- *    halaman digambar.
- * 2. Pindah halaman tanpa muat ulang (mis. setelah keluar): skrip itu tidak
- *    jalan lagi, jadi `useLayoutEffect` di bawah memasangnya sebelum paint.
- * 3. Kunjungan pertama: setelah animasi selesai, sesi ditandai dan atribut
- *    dipasang.
- *
- * Penandaan sengaja menunggu animasi selesai, bukan saat mount. Di mode
- * pengembangan React menjalankan efek dua kali; menandai saat mount akan
- * mematikan gerbang di putaran kedua sebelum sempat terlihat.
+ * Gerbang pembuka di halaman login. Selalu diputar setiap kali halaman login
+ * dibuka atau dimuat ulang (~1 detik), lalu membuka dan menghilang mulus.
  */
-export function VaultGate() {
-  useLayoutEffect(() => {
-    if (hasPlayed(getSessionStorage())) {
-      document.documentElement.setAttribute(VAULT_ATTRIBUTE, "1");
-    }
-  }, []);
+export function VaultGate({ brand }: { brand?: BrandConfig }) {
+  const [closed, setClosed] = useState(false);
+
+  const appName = brand?.appName ?? APP_NAME;
+  const logoUrl = getBrandLogoUrl(brand);
 
   useEffect(() => {
+    // Bersihkan penanda lama agar selalu bisa berputar saat halaman dibuka atau dimuat ulang
+    document.documentElement.removeAttribute(VAULT_ATTRIBUTE);
+    try {
+      window.sessionStorage?.removeItem(VAULT_STORAGE_KEY);
+    } catch {}
+
     const timer = window.setTimeout(() => {
-      markPlayed(getSessionStorage());
+      setClosed(true);
       document.documentElement.setAttribute(VAULT_ATTRIBUTE, "1");
     }, VAULT_DURATION_MS);
 
     return () => window.clearTimeout(timer);
   }, []);
+
+  if (closed) return null;
 
   return (
     <div
@@ -59,9 +51,14 @@ export function VaultGate() {
       </div>
 
       <div className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 transform-gpu flex-col items-center gap-3 animate-vault-seam">
-        <BrandMark className="h-20 w-20 rounded-3xl text-2xl shadow-2xl" />
+        <BrandMark
+          logoUrl={logoUrl}
+          hasCustomLogo={brand?.hasCustomLogo}
+          shape={brand?.logoShape}
+          className="h-20 w-20 rounded-3xl text-2xl shadow-2xl"
+        />
         <span className="rounded-full border border-sidebar-border bg-sidebar-active px-3.5 py-1 text-xs font-medium tracking-wide text-sidebar-foreground shadow-md">
-          {APP_NAME}
+          {appName}
         </span>
       </div>
     </div>

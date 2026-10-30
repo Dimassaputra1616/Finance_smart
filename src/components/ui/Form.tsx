@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, isValidElement, useId, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useId, useState } from "react";
 import type {
   InputHTMLAttributes,
   ReactElement,
@@ -13,10 +13,10 @@ import { cx } from "./Card";
 
 const FIELD_STYLES = [
   "min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 py-2.5",
-  "text-sm text-foreground shadow-sm outline-none transition",
+  "text-sm text-foreground shadow-xs outline-none transition-all duration-200",
   "placeholder:text-subtle-foreground",
-  "hover:border-muted-foreground/40",
-  "focus:border-ring focus:ring-4 focus:ring-ring/10",
+  "hover:border-muted-foreground/60 hover:bg-surface-hover/40",
+  "focus:border-ring focus:ring-4 focus:ring-ring/10 focus:bg-surface",
   "disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted-foreground",
 ].join(" ");
 
@@ -100,13 +100,17 @@ export function FormField({
 export function Input({
   invalid,
   className,
+  "aria-invalid": _ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
   return (
     <input
-      className={cx(FIELD_STYLES, invalid && INVALID_STYLES, className)}
-      aria-invalid={invalid || undefined}
+      suppressHydrationWarning
       {...props}
+      className={cx(FIELD_STYLES, invalid && INVALID_STYLES, className)}
+      {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
+      {...(invalid ? { "aria-invalid": true } : {})}
     />
   );
 }
@@ -115,18 +119,22 @@ export function Select({
   invalid,
   className,
   children,
+  "aria-invalid": _ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean }) {
   return (
     <select
+      suppressHydrationWarning
+      {...props}
       className={cx(
         FIELD_STYLES,
         "cursor-pointer appearance-none bg-[length:1.1rem] bg-[right_0.75rem_center] bg-no-repeat pr-10",
         invalid && INVALID_STYLES,
         className,
       )}
-      aria-invalid={invalid || undefined}
-      {...props}
+      {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
+      {...(invalid ? { "aria-invalid": true } : {})}
     >
       {children}
     </select>
@@ -136,18 +144,22 @@ export function Select({
 export function Textarea({
   invalid,
   className,
+  "aria-invalid": _ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean }) {
   return (
     <textarea
+      suppressHydrationWarning
+      {...props}
       className={cx(
         FIELD_STYLES,
         "min-h-24 resize-y",
         invalid && INVALID_STYLES,
         className,
       )}
-      aria-invalid={invalid || undefined}
-      {...props}
+      {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
+      {...(invalid ? { "aria-invalid": true } : {})}
     />
   );
 }
@@ -162,6 +174,7 @@ export function Textarea({
 export function CurrencyInput({
   name,
   defaultValue,
+  value: controlledValue,
   invalid,
   className,
   placeholder = "0",
@@ -171,6 +184,7 @@ export function CurrencyInput({
 }: {
   name: string;
   defaultValue?: number;
+  value?: number | null;
   invalid?: boolean;
   className?: string;
   placeholder?: string;
@@ -179,8 +193,16 @@ export function CurrencyInput({
   onValueChange?: (amount: number | null) => void;
 }) {
   const [value, setValue] = useState(
-    defaultValue ? formatInputAmount(defaultValue) : "",
+    controlledValue !== undefined
+      ? controlledValue ? formatInputAmount(controlledValue) : ""
+      : defaultValue ? formatInputAmount(defaultValue) : "",
   );
+
+  useEffect(() => {
+    if (controlledValue !== undefined) {
+      setValue(controlledValue ? formatInputAmount(controlledValue) : "");
+    }
+  }, [controlledValue]);
 
   return (
     <div className="relative">
@@ -188,12 +210,13 @@ export function CurrencyInput({
         Rp
       </span>
       <input
+        suppressHydrationWarning
         id={id}
         name={name}
         inputMode="numeric"
         autoComplete="off"
         placeholder={placeholder}
-        aria-describedby={ariaDescribedBy}
+        {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
         value={value}
         onChange={(event) => {
           const digits = event.target.value.replace(/\D/g, "");
@@ -213,7 +236,7 @@ export function CurrencyInput({
           invalid && INVALID_STYLES,
           className,
         )}
-        aria-invalid={invalid || undefined}
+        {...(invalid ? { "aria-invalid": true } : {})}
       />
     </div>
   );
@@ -250,12 +273,13 @@ export function SignedCurrencyInput({
         Rp
       </span>
       <input
+        suppressHydrationWarning
         id={id}
         name={name}
         inputMode="numeric"
         autoComplete="off"
         placeholder="0"
-        aria-describedby={ariaDescribedBy}
+        {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
         value={value}
         onChange={(event) => {
           const raw = event.target.value;
@@ -274,7 +298,7 @@ export function SignedCurrencyInput({
           "py-2.5 pl-10 text-right text-base font-medium tabular-nums",
           invalid && INVALID_STYLES,
         )}
-        aria-invalid={invalid || undefined}
+        {...(invalid ? { "aria-invalid": true } : {})}
       />
     </div>
   );
@@ -294,15 +318,17 @@ export function ColorInput({
 }) {
   return (
     <input
+      suppressHydrationWarning
       type="color"
       name={name}
       defaultValue={defaultValue}
       aria-label="Warna kategori"
-      aria-describedby={ariaDescribedBy}
+      {...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})}
       className={cx(
         "h-11 w-20 cursor-pointer rounded-xl border border-border bg-surface p-1.5 shadow-sm transition hover:border-muted-foreground/40",
         invalid && INVALID_STYLES,
       )}
+      {...(invalid ? { "aria-invalid": true } : {})}
     />
   );
 }

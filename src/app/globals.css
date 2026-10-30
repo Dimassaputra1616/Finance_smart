@@ -427,18 +427,8 @@ html.dark body {
   white-space: nowrap;
 }
 
-/*
- * Menyembunyikan dekorasi menurut TINGGI layar, bukan lebar. Dipakai panel kiri
- * halaman login supaya halaman itu tidak pernah butuh scroll di laptop
- * berlayar pendek. Sengaja CSS biasa: breakpoint Tailwind hanya mengenal lebar.
- */
-@media (max-height: 779px) {
-  .hide-on-short-screen {
-    display: none;
-  }
-}
-
-@media (max-height: 599px) {
+/* Sembunyikan hanya pada layar ekstrem sangat pendek (< 520px) */
+@media (max-height: 520px) {
   .hide-on-tiny-screen {
     display: none;
   }

@@ -12,3 +12,6 @@
 export const APP_NAME = "Perbendaharaan & Kas";
 
 export const APP_TAGLINE = "Sistem pengendalian keuangan internal";
+
+export * from "./brand-config";
+

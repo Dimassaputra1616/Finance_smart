@@ -26,7 +26,7 @@ export function TreasurerWelcomeCard({
       {/* Pendaran Latar Belakang */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-12 -top-12 h-56 w-56 rounded-full bg-primary/10 blur-3xl dark:bg-[#c49a45]/15"
+        className="pointer-events-none absolute -right-12 -top-12 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
       />
 
       <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:text-left sm:gap-6">

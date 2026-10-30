@@ -45,12 +45,32 @@ export async function saveProof(file: File): Promise<SaveProofResult> {
   const checked = checkProofFile(bytes);
   if (!checked.ok) return checked;
 
-  const fileName = `proof_${Date.now()}_${randomBytes(6).toString("hex")}.${checked.extension}`;
+  let bufferToSave: Uint8Array = bytes;
+  let extension = checked.extension;
+
+  // Jika file adalah foto HEIC/HEIF dari iPhone, konversi otomatis ke WebP
+  // menggunakan sharp agar dapat langsung ditampilkan di semua browser.
+  if (checked.type === "heic") {
+    try {
+      const sharpModule = await import("sharp");
+      const sharp = sharpModule.default || sharpModule;
+      const webpBuffer = await sharp(Buffer.from(bytes))
+        .webp({ quality: 80 })
+        .toBuffer();
+      bufferToSave = new Uint8Array(webpBuffer);
+      extension = "webp";
+    } catch {
+      // Jika sharp tidak dapat mengonversi (misal platform tanpa libheif),
+      // tetap simpan format heic asli agar berkas bukti tidak hilang.
+    }
+  }
+
+  const fileName = `proof_${Date.now()}_${randomBytes(6).toString("hex")}.${extension}`;
 
   try {
     await fs.mkdir(PROOF_DIR, { recursive: true });
     // `wx`: gagal bila nama sudah ada, jadi tidak pernah menimpa bukti lain.
-    await fs.writeFile(path.join(PROOF_DIR, fileName), bytes, { flag: "wx" });
+    await fs.writeFile(path.join(PROOF_DIR, fileName), bufferToSave, { flag: "wx" });
   } catch {
     return {
       ok: false,
@@ -63,7 +83,7 @@ export async function saveProof(file: File): Promise<SaveProofResult> {
     proof: {
       path: `${PROOF_URL_PREFIX}${fileName}`,
       originalName: sanitizeOriginalName(file.name),
-      size: bytes.length,
+      size: bufferToSave.length,
     },
   };
 }

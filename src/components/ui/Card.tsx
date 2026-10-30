@@ -45,11 +45,11 @@ export function CardHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-surface-muted/50 px-5 py-4">
       <div>
-        <h2 className="text-[0.95rem] font-semibold tracking-tight text-foreground">
+        <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
           {title}
         </h2>
         {description ? (
-          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">{description}</p>
         ) : null}
       </div>
       {action}
@@ -112,11 +112,11 @@ export function StatCard({
       />
 
       <div className="relative flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-sm sm:text-base font-medium text-muted-foreground">{label}</p>
         {icon ? (
           <span
             className={cx(
-              "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition",
+              "grid h-10 w-10 shrink-0 place-items-center rounded-xl transition",
               styles.chip,
             )}
           >
@@ -130,7 +130,7 @@ export function StatCard({
           alih-alih memaksa halaman jadi bisa digeser ke samping. */}
       <p
         className={cx(
-          "rp-amount relative mt-3 min-w-0 text-[clamp(1.25rem,5.5vw,1.5rem)] font-semibold tracking-tight tabular-nums",
+          "rp-amount relative mt-3 min-w-0 text-2xl sm:text-3xl font-bold tracking-tight tabular-nums",
           styles.value,
         )}
       >
@@ -138,7 +138,7 @@ export function StatCard({
       </p>
 
       {hint ? (
-        <p className="relative mt-1.5 text-xs text-subtle-foreground">{hint}</p>
+        <p className="relative mt-1.5 text-xs sm:text-sm text-subtle-foreground leading-normal">{hint}</p>
       ) : null}
     </div>
   );

@@ -9,7 +9,9 @@ import { transactionFormSchema } from "@/lib/validations";
 import { actionError, describePrismaError, type ActionResult } from "@/lib/types";
 import type { TransactionKind, TransactionStatus } from "@/lib/types";
 import { canModifyTransaction } from "@/lib/transaction-rules";
+import { formatRupiah } from "@/lib/money";
 import { removeProof, saveProof, type SavedProof } from "@/server/proof-storage";
+import { addAppNotification } from "@/server/notifications-storage";
 import { revalidateFinancePages } from "./revalidate";
 
 function readTransactionForm(formData: FormData) {
@@ -181,6 +183,26 @@ export async function createTransaction(
     return actionError(describePrismaError(error));
   }
 
+  // Kirim notifikasi aplikasi internal
+  try {
+    if (isStaff && status === "PENDING") {
+      await addAppNotification({
+        title: "Persetujuan Kas Keluar Direktur",
+        body: `Staf ${currentUser.name} mengajukan pengeluaran ${formatRupiah(amount)} (${description}). Menunggu persetujuan Direktur.`,
+        url: "/transaksi?status=PENDING",
+        type: "approval",
+        targetRole: "DIRECTOR",
+      });
+    } else {
+      await addAppNotification({
+        title: kind === "INCOME" ? "Penerimaan Kas Masuk" : "Pengeluaran Kas Tercatat",
+        body: `${formatRupiah(amount)} · ${description}`,
+        url: "/transaksi",
+        type: "transaction",
+      });
+    }
+  } catch {}
+
   // `redirect` melempar exception NEXT_REDIRECT, jadi harus DI LUAR blok try
   // agar tidak tertangkap dan dianggap kegagalan.
   revalidateFinancePages();
@@ -348,7 +370,7 @@ export async function approveTransaction(
     const admin = await requireAdmin();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).transaction.update({
+    const updated = await (db as any).transaction.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -356,7 +378,19 @@ export async function approveTransaction(
         approvedAt: new Date(),
         rejectionReason: null,
       },
+      select: { description: true, amount: true },
     });
+
+    try {
+      const approverTitle = admin.role === "DIRECTOR" ? "Direktur" : "Pimpinan";
+      await addAppNotification({
+        title: "Pengeluaran Disetujui Direktur",
+        body: `Transaksi "${updated.description}" (${formatRupiah(updated.amount)}) telah disetujui oleh ${approverTitle} ${admin.name}. Saldo kas telah terpotong.`,
+        url: "/transaksi",
+        type: "approval",
+        targetRole: "ALL",
+      });
+    } catch {}
 
     revalidateFinancePages();
     return { ok: true, message: "Transaksi berhasil disetujui." };
@@ -380,7 +414,7 @@ export async function rejectTransaction(
     const admin = await requireAdmin();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).transaction.update({
+    const updated = await (db as any).transaction.update({
       where: { id },
       data: {
         status: "REJECTED",
@@ -388,7 +422,19 @@ export async function rejectTransaction(
         approvedAt: new Date(),
         rejectionReason: reason || "Ditolak oleh Administrator.",
       },
+      select: { description: true, amount: true },
     });
+
+    try {
+      const approverTitle = admin.role === "DIRECTOR" ? "Direktur" : "Pimpinan";
+      await addAppNotification({
+        title: "Pengajuan Ditolak Direktur",
+        body: `Pengajuan "${updated.description}" (${formatRupiah(updated.amount)}) ditolak oleh ${approverTitle}: ${reason || "Ditolak oleh Administrator."}`,
+        url: "/transaksi",
+        type: "approval",
+        targetRole: "ALL",
+      });
+    } catch {}
 
     revalidateFinancePages();
     return { ok: true, message: "Transaksi ditolak." };

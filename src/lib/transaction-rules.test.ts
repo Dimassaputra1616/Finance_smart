@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  canAccessConfigMaster,
   canApproveTransaction,
   canManageMasterData,
+  canManageUsers,
   canModifyTransaction,
   isTransactionAffectingBalance,
 } from "./transaction-rules";
 
 describe("canManageMasterData", () => {
-  it("hanya ADMIN yang boleh mengubah akun, kategori, transfer, dan piutang", () => {
+  it("ADMIN dan DIRECTOR boleh mengubah akun, kategori, transfer, dan piutang", () => {
     expect(canManageMasterData("ADMIN")).toBe(true);
+    expect(canManageMasterData("DIRECTOR")).toBe(true);
   });
 
   it("menolak STAFF", () => {
@@ -24,6 +27,24 @@ describe("canManageMasterData", () => {
   });
 });
 
+describe("canManageUsers", () => {
+  it("hanya ADMIN (Super Admin) yang boleh mengelola akun pengguna", () => {
+    expect(canManageUsers("ADMIN")).toBe(true);
+    expect(canManageUsers("DIRECTOR")).toBe(false);
+    expect(canManageUsers("STAFF")).toBe(false);
+  });
+});
+
+describe("canAccessConfigMaster", () => {
+  it("eksklusif hanya ADMIN (Super Admin) yang boleh mengakses dan mengubah Config Master", () => {
+    expect(canAccessConfigMaster("ADMIN")).toBe(true);
+    expect(canAccessConfigMaster("DIRECTOR")).toBe(false);
+    expect(canAccessConfigMaster("STAFF")).toBe(false);
+    expect(canAccessConfigMaster(null)).toBe(false);
+    expect(canAccessConfigMaster(undefined)).toBe(false);
+  });
+});
+
 describe("isTransactionAffectingBalance", () => {
   it("hanya transaksi APPROVED yang mempengaruhi saldo kas", () => {
     expect(isTransactionAffectingBalance("APPROVED")).toBe(true);
@@ -36,6 +57,7 @@ describe("isTransactionAffectingBalance", () => {
 
 describe("canModifyTransaction", () => {
   const admin = { id: "user-admin", role: "ADMIN" as const };
+  const director = { id: "user-director", role: "DIRECTOR" as const };
   const staffA = { id: "user-staff-a", role: "STAFF" as const };
   const staffB = { id: "user-staff-b", role: "STAFF" as const };
 
@@ -56,6 +78,21 @@ describe("canModifyTransaction", () => {
       canModifyTransaction(admin, {
         createdById: null,
         status: "REJECTED",
+      }).allowed,
+    ).toBe(true);
+  });
+
+  it("director bebas mengubah transaksi status apa pun dan milik siapa pun", () => {
+    expect(
+      canModifyTransaction(director, {
+        createdById: staffA.id,
+        status: "APPROVED",
+      }).allowed,
+    ).toBe(true);
+    expect(
+      canModifyTransaction(director, {
+        createdById: staffA.id,
+        status: "PENDING",
       }).allowed,
     ).toBe(true);
   });
@@ -96,8 +133,9 @@ describe("canModifyTransaction", () => {
 });
 
 describe("canApproveTransaction", () => {
-  it("hanya role ADMIN yang berhak menyetujui/menolak", () => {
+  it("ADMIN dan DIRECTOR berhak menyetujui/menolak transaksi", () => {
     expect(canApproveTransaction("ADMIN")).toBe(true);
+    expect(canApproveTransaction("DIRECTOR")).toBe(true);
     expect(canApproveTransaction("STAFF")).toBe(false);
     expect(canApproveTransaction("ANONYMOUS")).toBe(false);
   });
