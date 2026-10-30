@@ -31,6 +31,7 @@ const INVALID_STYLES =
 export function FormField({
   label,
   htmlFor,
+  name,
   errors,
   hint,
   required,
@@ -38,13 +39,15 @@ export function FormField({
   children,
 }: {
   label: string;
-  htmlFor: string;
+  htmlFor?: string;
+  name?: string;
   errors?: string[];
   hint?: string;
   required?: boolean;
   className?: string;
   children: ReactNode;
 }) {
+  const targetId = htmlFor ?? name;
   const message = errors?.[0];
 
   // Satu id dipakai bersama untuk pesan dan bantuan, lalu disuntikkan ke
@@ -64,7 +67,7 @@ export function FormField({
   return (
     <div className={cx("space-y-1.5", className)}>
       <label
-        htmlFor={htmlFor}
+        htmlFor={targetId}
         className="flex items-center gap-1 text-sm font-medium text-foreground"
       >
         {label}

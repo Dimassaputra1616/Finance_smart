@@ -80,8 +80,13 @@ export function FinanceDefaultsForm({
           </div>
 
           <div className="pt-1 max-w-md">
-            <FormField label="Pilih Rekening Utama" name="defaultAccountId">
+            <FormField
+              label="Pilih Rekening Utama"
+              htmlFor="defaultAccountId"
+              name="defaultAccountId"
+            >
               <Select
+                id="defaultAccountId"
                 name="defaultAccountId"
                 value={defaultAccount}
                 onChange={(e) => setDefaultAccount(e.target.value)}
@@ -115,12 +120,17 @@ export function FinanceDefaultsForm({
           </div>
 
           <div className="pt-1 max-w-sm">
-            <FormField label="Biaya Admin Standar (Rupiah)" name="defaultTransferFee">
+            <FormField
+              label="Biaya Admin Standar (Rupiah)"
+              htmlFor="defaultTransferFee"
+              name="defaultTransferFee"
+            >
               <div className="relative">
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                   Rp
                 </span>
                 <Input
+                  id="defaultTransferFee"
                   name="defaultTransferFee"
                   value={transferFeeInput}
                   onChange={handleFeeChange}

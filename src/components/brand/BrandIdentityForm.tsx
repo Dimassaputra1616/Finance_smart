@@ -71,11 +71,13 @@ export function BrandIdentityForm({ brand }: { brand: BrandConfig }) {
         <div className="sm:col-span-2">
           <FormField
             label="Nama Aplikasi / Brand Perusahaan"
+            htmlFor="appName"
             name="appName"
             required
             hint="Tampil di bilah samping, header ponsel, tab peramban, dan halaman masuk."
           >
             <Input
+              id="appName"
               name="appName"
               value={appName}
               onChange={(e) => setAppName(e.target.value)}
@@ -92,10 +94,12 @@ export function BrandIdentityForm({ brand }: { brand: BrandConfig }) {
         <div className="sm:col-span-2">
           <FormField
             label="Slogan / Tagline Aplikasi"
+            htmlFor="appTagline"
             name="appTagline"
             hint="Keterangan singkat di bawah nama aplikasi pada bilah samping dan panel masuk."
           >
             <Input
+              id="appTagline"
               name="appTagline"
               value={appTagline}
               onChange={(e) => setAppTagline(e.target.value)}
@@ -109,11 +113,13 @@ export function BrandIdentityForm({ brand }: { brand: BrandConfig }) {
         <div>
           <FormField
             label="Nama Singkat (Ikon Homescreen HP)"
+            htmlFor="shortName"
             name="shortName"
             required
             hint="Maksimal 16 karakter. Ditampilkan di bawah ikon aplikasi pada layar utama ponsel."
           >
             <Input
+              id="shortName"
               name="shortName"
               value={shortName}
               onChange={(e) => setShortName(e.target.value)}
@@ -129,10 +135,12 @@ export function BrandIdentityForm({ brand }: { brand: BrandConfig }) {
         <div>
           <FormField
             label="Bentuk Tampilan Logo"
+            htmlFor="logoShape"
             name="logoShape"
             hint="Pilihan bentuk sudut bingkai logo pada bilah samping dan navigasi."
           >
             <Select
+              id="logoShape"
               name="logoShape"
               value={logoShape}
               onChange={(e) => setLogoShape(e.target.value as LogoShape)}

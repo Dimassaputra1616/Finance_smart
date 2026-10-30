@@ -96,8 +96,13 @@ export function SystemPreferencesForm({ brand }: { brand: BrandConfig }) {
           </div>
 
           <div className="pt-2">
-            <FormField label="Status Kewajiban Nota" name="requireProofForExpense">
+            <FormField
+              label="Status Kewajiban Nota"
+              htmlFor="requireProofForExpense"
+              name="requireProofForExpense"
+            >
               <Select
+                id="requireProofForExpense"
                 name="requireProofForExpense"
                 value={requireProof ? "true" : "false"}
                 onChange={(e) => setRequireProof(e.target.value === "true")}

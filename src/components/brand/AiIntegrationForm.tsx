@@ -102,10 +102,12 @@ export function AiIntegrationForm({ brand }: { brand: BrandConfig }) {
             <div className="sm:col-span-2">
               <FormField
                 label="Base URL Endpoint (9router / API Gateway)"
+                htmlFor="aiBaseUrl"
                 name="aiBaseUrl"
                 hint="Alamat router API abang dengan protokol Anthropic (/v1/messages). Default: https://api.anthropic.com"
               >
                 <Input
+                  id="aiBaseUrl"
                   name="aiBaseUrl"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
@@ -119,10 +121,12 @@ export function AiIntegrationForm({ brand }: { brand: BrandConfig }) {
             <div className="sm:col-span-2">
               <FormField
                 label="Nama Model AI Vision"
+                htmlFor="aiModelName"
                 name="aiModelName"
                 hint="Nama model yang dipanggil di router (Rekomendasi: claude-3-5-haiku-20241022 untuk kecepatan tinggi ~1 detik)"
               >
                 <Input
+                  id="aiModelName"
                   name="aiModelName"
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
@@ -138,11 +142,13 @@ export function AiIntegrationForm({ brand }: { brand: BrandConfig }) {
         <div className="rounded-2xl border border-border/80 bg-surface-muted/20 p-4 sm:p-5 space-y-3">
           <FormField
             label="Kunci API (Token 9router / Anthropic Key)"
+            htmlFor="anthropicApiKey"
             name="anthropicApiKey"
             hint="Token autentikasi router atau akun Anthropic. (Juga dapat disetel di .env sebagai ANTHROPIC_API_KEY)"
           >
             <div className="relative">
               <Input
+                id="anthropicApiKey"
                 type={showKey ? "text" : "password"}
                 name="anthropicApiKey"
                 value={apiKey}

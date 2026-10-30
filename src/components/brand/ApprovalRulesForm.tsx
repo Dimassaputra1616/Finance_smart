@@ -69,12 +69,17 @@ export function ApprovalRulesForm({ brand }: { brand: BrandConfig }) {
           </div>
 
           <div className="pt-1 max-w-sm">
-            <FormField label="Nominal Batas Approval (Rupiah)" name="directorApprovalThreshold">
+            <FormField
+              label="Nominal Batas Approval (Rupiah)"
+              htmlFor="directorApprovalThreshold"
+              name="directorApprovalThreshold"
+            >
               <div className="relative">
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                   Rp
                 </span>
                 <Input
+                  id="directorApprovalThreshold"
                   name="directorApprovalThreshold"
                   value={thresholdInput}
                   onChange={handleThresholdChange}
@@ -104,8 +109,13 @@ export function ApprovalRulesForm({ brand }: { brand: BrandConfig }) {
           </div>
 
           <div className="pt-1 max-w-sm">
-            <FormField label="Status Otorisasi Admin" name="autoApproveAdmin">
+            <FormField
+              label="Status Otorisasi Admin"
+              htmlFor="autoApproveAdmin"
+              name="autoApproveAdmin"
+            >
               <Select
+                id="autoApproveAdmin"
                 name="autoApproveAdmin"
                 value={autoApprove ? "true" : "false"}
                 onChange={(e) => setAutoApprove(e.target.value === "true")}
@@ -134,8 +144,13 @@ export function ApprovalRulesForm({ brand }: { brand: BrandConfig }) {
           </div>
 
           <div className="pt-1 max-w-sm">
-            <FormField label="Kewajiban Bukti Kuitansi" name="requireProofForExpense">
+            <FormField
+              label="Kewajiban Bukti Kuitansi"
+              htmlFor="requireProofForExpense"
+              name="requireProofForExpense"
+            >
               <Select
+                id="requireProofForExpense"
                 name="requireProofForExpense"
                 value={requireProof ? "true" : "false"}
                 onChange={(e) => setRequireProof(e.target.value === "true")}

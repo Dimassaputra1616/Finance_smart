@@ -55,10 +55,12 @@ export function TelegramNotificationForm({ brand }: { brand: BrandConfig }) {
           <div className="sm:col-span-2">
             <FormField
               label="Telegram Bot Token"
+              htmlFor="telegramBotToken"
               name="telegramBotToken"
               hint="Didapatkan dari @BotFather saat membuat bot Telegram baru."
             >
               <Input
+                id="telegramBotToken"
                 name="telegramBotToken"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
@@ -71,10 +73,12 @@ export function TelegramNotificationForm({ brand }: { brand: BrandConfig }) {
           <div className="sm:col-span-2">
             <FormField
               label="Telegram Chat ID / ID Grup Keuangan"
+              htmlFor="telegramChatId"
               name="telegramChatId"
               hint="ID obrolan pribadi atau ID grup internal kantor (misal: -100123456789)."
             >
               <Input
+                id="telegramChatId"
                 name="telegramChatId"
                 value={chatId}
                 onChange={(e) => setChatId(e.target.value)}

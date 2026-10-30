@@ -39,11 +39,13 @@ export function CompanyProfileForm({ brand }: { brand: BrandConfig }) {
         <div className="sm:col-span-2">
           <FormField
             label="Nama Resmi Badan Usaha / Organisasi"
+            htmlFor="companyName"
             name="companyName"
             required
             hint="Nama resmi yang tercetak pada kop laporan keuangan, bukti pengeluaran, dan ekspor data."
           >
             <Input
+              id="companyName"
               name="companyName"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
@@ -59,10 +61,12 @@ export function CompanyProfileForm({ brand }: { brand: BrandConfig }) {
         <div className="sm:col-span-2">
           <FormField
             label="Alamat Kantor / Domisili Usaha"
+            htmlFor="companyAddress"
             name="companyAddress"
             hint="Alamat lengkap operasional kantor untuk kelengkapan administrasi perbendaharaan."
           >
             <Input
+              id="companyAddress"
               name="companyAddress"
               value={companyAddress}
               onChange={(e) => setCompanyAddress(e.target.value)}
@@ -75,10 +79,12 @@ export function CompanyProfileForm({ brand }: { brand: BrandConfig }) {
         <div>
           <FormField
             label="Nomor Telepon / WhatsApp Resmi"
+            htmlFor="companyPhone"
             name="companyPhone"
             hint="Narahubung perbendaharaan internal."
           >
             <Input
+              id="companyPhone"
               name="companyPhone"
               value={companyPhone}
               onChange={(e) => setCompanyPhone(e.target.value)}
@@ -91,10 +97,12 @@ export function CompanyProfileForm({ brand }: { brand: BrandConfig }) {
         <div>
           <FormField
             label="Email Keuangan / Resmi"
+            htmlFor="companyEmail"
             name="companyEmail"
             hint="Alamat email perbendaharaan atau akunting."
           >
             <Input
+              id="companyEmail"
               type="email"
               name="companyEmail"
               value={companyEmail}
