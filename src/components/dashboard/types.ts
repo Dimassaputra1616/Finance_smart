@@ -5,11 +5,11 @@ import type {
   MonthSummary,
   PendingSummary,
   RecentTransaction,
+  CashflowTrendPoint,
+  BudgetProgressRow,
 } from "@/server/queries/finance";
 import type { ReceivableFlow, ReceivableSummary } from "@/server/queries/receivables";
 import type { WealthSummary } from "@/server/queries/wealth";
-import type { BudgetProgressRow } from "@/server/queries/budget";
-import type { CashflowTrendPoint } from "@/server/queries/cashflow-trend";
 
 export interface DashboardData {
   monthKey: string;

@@ -4,6 +4,8 @@ import { getAccountBalances } from "@/server/queries/finance";
 import { getReceivableSummary } from "@/server/queries/receivables";
 import { calcWealth, type WealthSummary } from "@/lib/wealth";
 
+export type { WealthSummary } from "@/lib/wealth";
+
 /**
  * Rakit total kekayaan dari data yang sudah ada.
  *

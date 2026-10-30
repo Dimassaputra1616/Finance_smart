@@ -99,6 +99,9 @@ export type TrendMonthResult = {
   transactionCount: number;
 };
 
+/** Alias untuk titik data grafik tren arus kas dashboard. */
+export type CashflowTrendPoint = TrendMonthResult;
+
 /**
  * Mengambil tren arus kas (penerimaan vs pengeluaran) selama N bulan ke belakang
  * (default 6 bulan) berurutan kronologis dari bulan terlama ke bulan target.
@@ -142,6 +145,9 @@ export type CategoryBreakdownRow = {
   total: number;
   count: number;
 };
+
+/** Alias untuk kompatibilitas tipe dashboard. */
+export type CategoryBreakdown = CategoryBreakdownRow;
 
 /** Total per kategori untuk satu bulan, diurutkan dari nominal terbesar. */
 export async function getCategoryBreakdown(
@@ -221,6 +227,10 @@ export async function getCategoryBreakdown(
     ];
   });
 }
+
+export type { BudgetRow } from "@/lib/budget-rules";
+/** Alias untuk baris alokasi pagu anggaran dashboard. */
+export type BudgetProgressRow = BudgetRow;
 
 /**
  * Realisasi pengeluaran terhadap pagu bulanan, untuk kategori yang punya pagu.
@@ -401,6 +411,9 @@ export type TransactionForExport = Prisma.TransactionGetPayload<{
   include: typeof TRANSACTION_EXPORT_INCLUDE;
 }>;
 
+/** Transaksi terakhir dengan relasi untuk dashboard. */
+export type RecentTransaction = TransactionWithRelations;
+
 /** Enam transaksi terakhir, tanpa kunci bulan. */
 export async function getRecentTransactions(
   take = 5,
@@ -433,12 +446,14 @@ export type TransactionListResult = {
 
 export const DEFAULT_PAGE_SIZE = 20;
 
-/** Ringkasan pengeluaran/pemasukan yang masih menunggu persetujuan (PENDING). */
-export async function getPendingSummary(): Promise<{
+export type PendingSummary = {
   count: number;
   totalExpense: number;
   totalIncome: number;
-}> {
+};
+
+/** Ringkasan pengeluaran/pemasukan yang masih menunggu persetujuan (PENDING). */
+export async function getPendingSummary(): Promise<PendingSummary> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const grouped = await (db.transaction.groupBy as any)({
