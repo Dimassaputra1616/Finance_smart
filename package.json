@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "NEXT_DIST_DIR=.next-build next build",
-    "start": "NEXT_DIST_DIR=.next-build next start --hostname 127.0.0.1",
+    "start": "NEXT_DIST_DIR=.next-build next start -H 0.0.0.0",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -18,12 +18,15 @@
     "db:import-sqlite": "tsx scripts/migrate-sqlite-to-postgres.ts",
     "db:studio": "prisma studio",
     "audit:viewport": "tsx scripts/audit-viewport.ts",
+    "neon:test": "tsx scripts/test-neon-services.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@neon/config": "^1.9.6",
+    "@neon/env": "^1.6.6",
     "@prisma/client": "^6.13.0",
     "next": "^15.5.0",
     "react": "^19.1.0",

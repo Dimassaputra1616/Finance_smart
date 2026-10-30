@@ -129,12 +129,10 @@ export function NotificationBell({ className }: { className?: string }) {
           body,
           icon: "/icon",
           badge: "/icon",
-          // Pola getar khas pesan Android (getar, jeda, getar)
-          vibrate: [200, 100, 200],
           data: { url },
           tag: "keuangan-app-alert",
           renotify: true,
-        });
+        } as NotificationOptions);
       } else if ("Notification" in window && Notification.permission === "granted") {
         new Notification(title, { body, icon: "/icon" });
       }

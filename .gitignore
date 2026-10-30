@@ -65,3 +65,4 @@ prisma/migrations-sqlite-backup/
 public/uploads/
 /storage/
 screenshots/
+.neon

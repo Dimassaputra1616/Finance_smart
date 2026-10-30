@@ -9,6 +9,10 @@ import {
   sanitizeOriginalName,
   MAX_PROOF_BYTES,
 } from "@/lib/proof-rules";
+import {
+  uploadToNeonStorage,
+  readFromNeonStorage,
+} from "@/lib/neon-storage";
 
 /**
  * Penyimpanan berkas bukti nota.
@@ -78,6 +82,19 @@ export async function saveProof(file: File): Promise<SaveProofResult> {
     };
   }
 
+  // Sinkronisasi ke Neon Object Storage bucket assets jika tersedia
+  try {
+    const mime =
+      checked.type === "png"
+        ? "image/png"
+        : checked.type === "webp"
+          ? "image/webp"
+          : "image/jpeg";
+    await uploadToNeonStorage(`proofs/${fileName}`, bufferToSave, mime);
+  } catch {
+    // Non-blocking: data lokal tetap berhasil tersimpan
+  }
+
   return {
     ok: true,
     proof: {
@@ -112,11 +129,14 @@ export async function readProof(fileName: string): Promise<Buffer | null> {
 
   const fullPath = path.join(PROOF_DIR, fileName);
   // Lapisan kedua di atas regex: hasil gabungan harus tetap di dalam folder bukti.
-  if (!fullPath.startsWith(PROOF_DIR + path.sep)) return null;
-
-  try {
-    return await fs.readFile(fullPath);
-  } catch {
-    return null;
+  if (fullPath.startsWith(PROOF_DIR + path.sep)) {
+    try {
+      return await fs.readFile(fullPath);
+    } catch {
+      // Jika berkas tidak ada di disk lokal (misal cloud container baru), fallback ke Neon
+    }
   }
+
+  // Fallback membaca dari Neon S3 Object Storage bucket assets
+  return readFromNeonStorage(`proofs/${fileName}`);
 }

@@ -50,10 +50,9 @@ export function DeviceNotificationCard() {
             body: "🔔 Notifikasi HP Aktif! Anda akan menerima update mutasi kas dan persetujuan di HP ini.",
             icon: "/icon",
             badge: "/icon",
-            vibrate: [200, 100, 200],
             data: { url: "/" },
             tag: "welcome-alert",
-          });
+          } as NotificationOptions);
         }
       } else if (result === "denied") {
         setStatusMessage({
@@ -87,11 +86,10 @@ export function DeviceNotificationCard() {
           body: "🔔 Tes Suara & Getar Berhasil! Notifikasi aplikasi terhubung sempurna di HP Android Anda.",
           icon: "/icon",
           badge: "/icon",
-          vibrate: [250, 100, 250],
           data: { url: "/transaksi" },
           tag: "test-alert",
           renotify: true,
-        });
+        } as NotificationOptions);
 
         setStatusMessage({
           tone: "success",

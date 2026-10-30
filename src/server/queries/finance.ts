@@ -143,6 +143,7 @@ export type CategoryBreakdownRow = {
   color: string;
   kind: TransactionKind;
   total: number;
+  amount: number;
   count: number;
 };
 
@@ -215,13 +216,15 @@ export async function getCategoryBreakdown(
     const category = categoryMap.get(row.categoryId);
     if (!category) return [];
 
+    const totalAmount = row._sum.amount ?? 0;
     return [
       {
         categoryId: row.categoryId,
         name: category.name,
         color: category.color,
         kind: row.kind as TransactionKind,
-        total: row._sum.amount ?? 0,
+        total: totalAmount,
+        amount: totalAmount,
         count: row._count._all,
       },
     ];
